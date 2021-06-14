@@ -1,0 +1,4 @@
+from mynewportxps.newportxps import NewportXPS
+from mynewportxps.newportxps.XPS_C8_drivers import XPSException
+#from mynewportxps.newportxps.XPS_C8_drivers import XPSException
+from mynewportxps.newportxps.newportxps import withConnectedXPS

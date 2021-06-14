@@ -1,0 +1,7 @@
+
+  Message='OrderedDict([('category', 'singleaxisinuse'), ('positioners', ['Pos'])])' cannot be a trajectory group, must be one of 
+  Source=C:\Users\FTS\source\repos\alicptfts\alicptfts\UnitTest\PVTTest.py
+  StackTrace:
+  File "C:\Users\FTS\source\repos\alicptfts\alicptfts\UnitTest\PVTTest.py", line 26, in <module> (Current frame)
+    xps.define_line_trajectories(pos,groupname,150,250,20,10)
+
