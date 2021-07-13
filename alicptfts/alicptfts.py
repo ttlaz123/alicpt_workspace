@@ -102,9 +102,13 @@ class AlicptFTS:
                 self.newportxps.connect()      # not tested
             except Exception:
                 pass
-        print('****************************')
-        self.stop()
-        self.newportxps.initialize_allgroups()
+        print('*********** initializing groups *****************')
+        #self.stop()
+        #self.stop()
+        
+
+
+        #self.newportxps.initialize_allgroups()
         print('STATUS: Initialized all groups')
         self.newportxps.home_allgroups()
         print('STATUS: Processed home search')

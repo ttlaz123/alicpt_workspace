@@ -41,11 +41,12 @@ groupName = {'PointingLinear': 'Group2',
     'MovingLinear': 'Group1'}
 
 
-def nidaqmx_single_read(time_length, time_resolution, channel='ai1'):
+def nidaqmx_single_read(time_length, time_resolution, channel='ai0', tasknumber=1):
     times = []
     readings = []
     n = 0
-    voltage_channel = '/'.join(['Dev1', channel])
+    taskname = 'Dev' + str(tasknumber)
+    voltage_channel = '/'.join([taskname, channel])
     with nidaqmx.Task() as task:
         task.ai_channels.add_ai_voltage_chan(voltage_channel)
         time0 = time.time()
@@ -86,11 +87,13 @@ def read_positions(fts, socket, time_length, time_resolution, group_name):
     return times, readings
 
 
-def plot_readings_timestamps(readings, timestamps, channel, pos, pos_times, pos2, pos_times2):
+def plot_readings_timestamps(readings, timestamps,readings2, timestamps2,  channel, channel2,pos, pos_times, pos2, pos_times2):
     utc_list = [datetime.utcfromtimestamp(t) for t in timestamps]
+    utc_list2 = [datetime.utcfromtimestamp(t) for t in timestamps2]
     utc_pos = [datetime.utcfromtimestamp(t) for t in pos_times]
     utc_pos2 = [datetime.utcfromtimestamp(t) for t in pos_times2]
     plt.plot(utc_list, [-r for r in readings], label='Voltage (V) in channel ' + str(channel))
+    plt.plot(utc_list2, [-r for r in readings2], label='Voltage (V) in channel ' + str(channel2))
     plt.plot(utc_pos, [p/100 for p in pos], label='group1 position/100')
     plt.plot(utc_pos2, [p/100 for p in pos2], label='group2 position/100')
     plt.xlabel('Time (UTC)')
@@ -116,14 +119,32 @@ def initialize_fts(password, num_sockets):
     fts.status()
     return fts
 
-def move_group1(fts, pos, socket):
+def move_group(fts, pos, socket):
     for p in pos:
-        fts.newportxps.move_stage(groupName['MovingLinear']+'.Pos', p ,False, socket=socket)
+        pos_spec = p.split('.')
+        if pos_spec[0] == 'g1':
+            fts.newportxps.move_stage(groupName['MovingLinear']+'.Pos', int(pos_spec[1]), False, socket=socket)
+        elif pos_spec[0] == 'g2':
+            fts.newportxps.move_stage(groupName['PointingLinear']+'.Pos', int(pos_spec[1]), False, socket=socket)
+    return
+
+def move_group1(fts, pos, socket):
+    '''
+    pos: list of int and str
+    '''
+    for p in pos:
+        if type(p) == str:
+            time.sleep(int(p))
+        else:
+            fts.newportxps.move_stage(groupName['MovingLinear']+'.Pos', p ,False, socket=socket)
     return 
 
 def move_group2(fts, pos, socket):
     for p in pos:
-        fts.newportxps.move_stage(groupName['PointingLinear']+'.Pos', p ,False, socket=socket)
+        if type(p) == str:
+            time.sleep(int(p))
+        else:
+            fts.newportxps.move_stage(groupName['PointingLinear']+'.Pos', p ,False, socket=socket)
     return 
 
 def get_pos1(fts, socket):
@@ -134,6 +155,17 @@ def get_pos2(fts, socket):
     pos = fts.newportxps.get_stage_position('Group2.Pos', socket=socket)
     return pos
 
+def write_seq(min1, max1, min2, max2):
+    # min1, max1, min2, max2 are all int
+    seq = ['g2.' + str(min2), 'g1.' + str(min1)]
+    for i in range(min2+1, max2+1):
+        if i % 2 == min2 % 2:
+            seq.append('g1.' + str(min1))
+        else:
+            seq.append('g1.' + str(max1))
+        seq.append('g2.' + str(i))
+    return seq
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--password', help='Password to connect to the NewportXPS')
@@ -141,27 +173,33 @@ def main():
     password = args.password
 
     fts = initialize_fts(password, num_sockets = 6)
-    print('done initializing')
-    time.sleep(5)    
-    move_group1(fts, [10, 50], socket=0)
-    print('finished moving group 1')
-    time.sleep(5)
-    seq1 = [60, 30, 200]#, 10, 300, 8]
-    seq2 = [100, 10,  150]#, 10, 300, 10, 400, 10]
-    time_length = 20
-    time_resolution = 0.002
-    with ThreadPoolExecutor(max_workers=5) as executor:
+    g1_min = -145
+    g1_max = 145
+    g2_min = -80
+    g2_max = 120
+    seq = write_seq(g1_min, g1_max, g2_min, g2_max)
+    #seq = ['g2.-80', 'g1.-145', 'g1.145', 'g2.-40', 'g1.-145', 'g2.0', 'g1.145', 'g2.60', 'g1.-145', 'g2.120', 'g1.145', 'g2.-30', 'g1.0']
+    #seq1 = [-145, 145, -145, 145]#, 10, 300, 8]
+    #seq2 = [-120, 0, 110]#, 10, 300, 10, 400, 10]
+    time_length = 120
+    time_resolution = 0.2
+    channel = 'ai0'
+    channel2 = 'ai4'
+    with ThreadPoolExecutor(max_workers=6) as executor:
         
-        a = executor.submit(move_group1, fts,seq1 , socket=0)
-        b = executor.submit(move_group2, fts,seq2 , socket=1)
+        g = executor.submit(move_group, fts, seq, socket=0)
+        #a = executor.submit(move_group1, fts,seq1 , socket=0)
+        #b = executor.submit(move_group2, fts,seq2 , socket=1)
         c = executor.submit(read_positions, fts, 2, time_length, time_resolution, 'Group1')
         d = executor.submit(read_positions, fts, 3, time_length, time_resolution, 'Group2')
-        e = executor.submit(nidaqmx_single_read, time_length, time_resolution)
+        e = executor.submit(nidaqmx_single_read, time_length, time_resolution, channel, 1)
+        #f = executor.submit(nidaqmx_single_read, time_length, time_resolution, channel2, 1)
         nida_times, readings = e.result()
+        nida_times2, readings2 = [],[]#f.result()
         pos1_times,pos1  = c.result()
         pos2_times,pos2 = d.result()
-    channel = 'ai0'
-    plot_readings_timestamps(readings, nida_times,channel, pos1, pos1_times, pos2, pos2_times)
+    
+    plot_readings_timestamps(readings, nida_times,nida_times2, readings2,channel,channel2, pos1, pos1_times, pos2, pos2_times)
  
 
 if __name__ == '__main__':
