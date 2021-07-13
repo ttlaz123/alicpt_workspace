@@ -141,6 +141,11 @@ def main():
     password = args.password
 
     fts = initialize_fts(password, num_sockets = 6)
+    print('done initializing')
+    time.sleep(5)    
+    move_group1(fts, [10, 50], socket=0)
+    print('finished moving group 1')
+    time.sleep(5)
     seq1 = [60, 30, 200]#, 10, 300, 8]
     seq2 = [100, 10,  150]#, 10, 300, 10, 400, 10]
     time_length = 20
