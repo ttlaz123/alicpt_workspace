@@ -435,6 +435,8 @@ class NewportXPS:
         method = 'GroupInitialize'
         if with_encoder:
             method  = 'GroupInitializeWithEncoderCalibration'
+        #group = group + '.Pos'
+        print('*************' + str(group) + '******************')
         self._group_act(method, group=group, action='initializing',
                         with_raise=with_raise)
         if home:
