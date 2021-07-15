@@ -86,6 +86,7 @@ class AlicptFTS:
         # Current implementation considers only the XPS controller
         self.source = IR518()
         self.chopper = MC2000B()
+        print('Start')
         if (self.newportxps is None):     # Start a new connection
             try:
                 self.newportxps = NewportXPS(host=host, username=username, password=password,port=port,timeout=timeout)
@@ -98,24 +99,24 @@ class AlicptFTS:
         else:                           # From a reboot
             try:
                 print('reboot')
-                #self.newportxps.initialize()
+                
+                self.newportxps.initialize()
                 self.newportxps.connect()      # not tested
             except Exception:
                 pass
         print('*********** initializing groups *****************')
-        #self.stop()
-        #self.stop()
-        
 
-
-        #self.newportxps.initialize_allgroups()
+        self.stop()
+        self.newportxps.initialize_allgroups()
         print('STATUS: Initialized all groups')
         self.newportxps.home_allgroups()
         print('STATUS: Processed home search')
         self.state = FTSState.INIT
-        self.set_motion_params('MovingLinear',[20.])
-        self.set_motion_params('PointingRotary', [20.])
-        self.set_motion_params('PointingLinear', [20.])
+        default_velocity = 20.
+        self.set_motion_params('MovingLinear',[default_velocity])
+        self.set_motion_params('PointingRotary', [default_velocity])
+        self.set_motion_params('PointingLinear', [default_velocity])
+        print('******************Finished Initialization****************')
 
 
     def configure(self, position, angle, relative=False):
