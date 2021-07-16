@@ -41,7 +41,7 @@ groupName = {'PointingLinear': 'Group2',
     'PointingRotary': 'Group3',
     'MovingLinear': 'Group1'}
 
-
+##### START RASTOR SCANNER CODE
 def nidaqmx_single_read(time_length, time_resolution, channel='ai0', tasknumber=1):
     times = []
     readings = []
@@ -191,6 +191,11 @@ def scan_plate(fts):
     
     plot_readings_timestamps(readings, nida_times,nida_times2, readings2,channel,channel2, pos1, pos1_times, pos2, pos2_times)
 
+### END RASTOR SCANNING CODE
+
+##########################
+## START FTS CODE
+##########################
 def set_trigger_start(fts, groupname, socket=0, verbose=False):
     trigger = 'SGamma.MotionStart'
     event_name = '.'.join([groupname, trigger])
@@ -216,7 +221,7 @@ def configure_gathering_length(fts, run_time, collection_resolution, socket=0, v
     action_name = 'GatheringRun'
     milli_to_sec = 1000 # 1000 milliseconds in a second
     run = int(run_time * milli_to_sec) 
-    milli_to_servo = 8000 # each servo cycle is 1/8000 sec
+    milli_to_servo = 10000 # each servo cycle is 1/8000 sec
     servo_cycle = int(collection_resolution * milli_to_servo)
 
     err, ret = fts.newportxps._xps.EventExtendedConfigurationActionSet(socket, [action_name], 
@@ -231,64 +236,10 @@ def cycle_group(fts, groupname, start, end, numcycles, socket=0):
         err, ret = fts.newportxps._xps.GroupMoveAbsolute(socket, groupname, [start])
         err, ret = fts.newportxps._xps.GroupMoveAbsolute(socket, groupname, [end])
 
-def determine_num_chunks(fts, total_lines, socket=0, max_lines=1000):
-    nchunks = int(total_lines/max_lines)+1
-    num_lines = total_lines 
-    success = False
-    while(not success):
-        print('Current number of chunks ' + str(nchunks))
-        ret, _ = fts.newportxps._xps.GatheringDataMultipleLinesGet(socket, 0, int(num_lines))
-        print('Current number of lines ' + str(num_lines))
-        if(ret < 0):
-            nchunks += 2
-            num_lines = total_lines/nchunks 
-        else:
-            print('Success')
-            success = True 
-        
-        if(num_lines < 10):
-            raise AttributeError('XPS not reading even though small enough chunks')
-    return nchunks 
-
-def read_and_save(fts, filename, headers, socket=0):
-    ret, total_lines, max_lines = fts.newportxps._xps.GatheringCurrentNumberGet(socket)
-    nchunks = determine_num_chunks(fts, total_lines, socket)
-    print('Number of chunks: ' + str(nchunks))
-    lines_per_chunk = int(total_lines/nchunks)
-    remaining_lines = total_lines - lines_per_chunk*nchunks
-    with open(filename, 'w') as f:
-        for header in headers:
-            f.write("## " + header + "\n")
-        for i in range(nchunks):
-            start = lines_per_chunk*i 
-            ret, buffer = fts.newportxps._xps.GatheringDataMultipleLinesGet(socket, start, lines_per_chunk)
-            f.write(buffer)
-        start = lines_per_chunk * nchunks
-        ret, buffer = fts.newportxps._xps.GatheringDataMultipleLinesGet(socket, start, remaining_lines)
-        f.write(buffer)
-    return 
-
 def calc_time(movement_params):
+    # TODO write this
     return 80 # seconds
-def fts_position_scan(fts, output_file, resolution, group_order=['Group1', 'Group2', 'Group3'],
-                        num_cycles=5, cycle_range=(0, 500), 
-                        velocity=20, acceleration=300,
-                        config1_list=[0, 100, 200, 300, 400, 500], 
-                        config2_list=[0, 90, 180, 270]):
-    movement_params = {}
-    
-    movement_params['resolution'] = resolution
-    movement_params['num_cycles'] = num_cycles
-    movement_params['cycle_range'] = cycle_range
-    movement_params['velocity'] = velocity
-    movement_params['acceleration'] = acceleration
-    movement_params['config_list1'] = config1_list
-    movement_params['config_list2'] = config2_list
 
-    movement_params['gather_time'] =  calc_time(movement_params) 
-    gather_data(fts, movement_params, group_order, gather_filename=output_file)
-
-    return 
 
 def gather_data_setup(fts, gather_time, gather_resolution, groupnames):
     axname = 'Pos'
@@ -331,6 +282,43 @@ def perform_movement(fts, movement_params, trigger_start_group, group_titles, gr
     headers=[timestamp, str(group_titles)]
     return headers
 
+def determine_num_chunks(fts, total_lines, socket=0, max_lines=1000):
+    nchunks = int(total_lines/max_lines)+1
+    num_lines = total_lines 
+    success = False
+    while(not success):
+        print('Current number of chunks ' + str(nchunks))
+        ret, _ = fts.newportxps._xps.GatheringDataMultipleLinesGet(socket, 0, int(num_lines))
+        print('Current number of lines ' + str(num_lines))
+        if(ret < 0):
+            nchunks += 2
+            num_lines = total_lines/nchunks 
+        else:
+            print('Success')
+            success = True 
+        
+        if(num_lines < 10):
+            raise AttributeError('XPS not reading even though small enough chunks')
+    return nchunks 
+
+def read_and_save(fts, filename, headers, socket=0):
+    ret, total_lines, max_lines = fts.newportxps._xps.GatheringCurrentNumberGet(socket)
+    nchunks = determine_num_chunks(fts, total_lines, socket)
+    print('Number of chunks: ' + str(nchunks))
+    lines_per_chunk = int(total_lines/nchunks)
+    remaining_lines = total_lines - lines_per_chunk*nchunks
+    with open(filename, 'w') as f:
+        for header in headers:
+            f.write("## " + header + "\n")
+        for i in range(nchunks):
+            start = lines_per_chunk*i 
+            ret, buffer = fts.newportxps._xps.GatheringDataMultipleLinesGet(socket, start, lines_per_chunk)
+            f.write(buffer)
+        start = lines_per_chunk * nchunks
+        ret, buffer = fts.newportxps._xps.GatheringDataMultipleLinesGet(socket, start, remaining_lines)
+        f.write(buffer)
+    return 
+
 def gather_data_end_and_save(fts, gather_filename, headers, eventID, socket=0):
     ret = fts.newportxps._xps.EventExtendedRemove(socket, eventID)
     ret = fts.newportxps._xps.GatheringStopAndSave(socket)
@@ -347,6 +335,28 @@ def gather_data(fts, movement_params, group_order, gather_filename = 'testgather
     gather_data_end_and_save(fts, gather_filename, headers, eventID)
     return 
 
+def fts_position_scan(fts, output_file, resolution, group_order=['Group1', 'Group2', 'Group3'],
+                        num_cycles=5, cycle_range=(0, 500), 
+                        velocity=20, acceleration=300,
+                        config1_list=[0, 100, 200, 300, 400, 500], 
+                        config2_list=[0, 90, 180, 270]):
+    movement_params = {}
+    
+    movement_params['resolution'] = resolution
+    movement_params['num_cycles'] = num_cycles
+    movement_params['cycle_range'] = cycle_range
+    movement_params['velocity'] = velocity
+    movement_params['acceleration'] = acceleration
+    movement_params['config_list1'] = config1_list
+    movement_params['config_list2'] = config2_list
+
+    movement_params['gather_time'] =  calc_time(movement_params) 
+    gather_data(fts, movement_params, group_order, gather_filename=output_file)
+
+    return 
+################################
+## END FTS CODE
+################################
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--password', help='Password to connect to the NewportXPS')
@@ -366,11 +376,16 @@ def graph_position_data(dat_filename, sep=';'):
     ## assumes each line is separated by semicolons
     
     df = pd.read_csv(dat_filename, sep=';', comment='#', header=None)
-    print(df)
+    plt.figure()
+    for col in df:
+        pos_list = df[col].tolist()
+        plt.plot(pos_list, label = col)
+    plt.legend()
+    plt.show()
     return 
 if __name__ == '__main__':
+    main()
     graph_position_data('test_gather.dat')
-    #main()
   
     
 def stream_test():
