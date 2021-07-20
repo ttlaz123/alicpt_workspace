@@ -5,6 +5,7 @@ import ntplib
 import time
 from concurrent.futures import ThreadPoolExecutor
 import asyncio
+from scipy.interpolate import interp1d 
 print(os.getcwd())
 # import System
 # from System import String
@@ -40,6 +41,37 @@ groupName = {'PointingLinear': 'Group2',
     'PointingRotary': 'Group3',
     'MovingLinear': 'Group1'}
 
+def convert_to_rastor(x_stamps, y_stamps, v_stamps):
+    x_times, x_pos = x_stamps
+    y_times, y_pos = y_stamps 
+    v_times, v_pos = v_stamps 
+    interpx = interp1d(x_times, x_pos)
+    interpy = interp1d(y_times, y_pos)
+    interpv = interp1d(v_times, v_pos)
+
+    max_y = max(y_pos)
+    max_x = max(x_pos)
+    min_y = min(y_pos)
+    min_x = min(x_pos)
+    x_range = int(max_x-min_x)+1
+    y_range = int(max_y-min_y)+1
+
+    rastor = np.zeros((x_range, y_range))
+    max_x_time = max(x_times)
+    max_y_time = max(y_times)
+    min_x_time = min(x_times)
+    min_y_time = min(y_times)
+    for t in v_times:
+        if(t < min_x_time or t < min_y_time):
+            continue
+        if(t > max_x_time or t > max_y_time):
+            continue
+        v = interpv(t)
+        x = interpx(t)
+        y = interpy(t)
+        rastor[int(x-min_x), int(y-min_y)] = v 
+    plt.imshow(rastor)
+    plt.show()
 
 def nidaqmx_single_read(time_length, time_resolution, channel='ai0', tasknumber=1):
     times = []
@@ -51,7 +83,7 @@ def nidaqmx_single_read(time_length, time_resolution, channel='ai0', tasknumber=
         task.ai_channels.add_ai_voltage_chan(voltage_channel)
         time0 = time.time()
         time_elapsed = time.time()-time0 
-        print(time_elapsed)
+        #print(time_elapsed)
         while(time_elapsed < time_length):
             if(n%10 == 0):
                 print('Reading sample ' + str(n))
@@ -77,8 +109,8 @@ def read_positions(fts, socket, time_length, time_resolution, group_name):
         time_start = time.time()
         x = fts.newportxps.get_stage_position(group_name + '.Pos', socket)
         time_end = time.time()
-        print(time_start)
-        print(time_end)
+        #print(time_start)
+        #print(time_end)
         times.append((time_start + time_end)/2)
         readings.append(x)
         time.sleep(time_resolution)
@@ -166,6 +198,21 @@ def write_seq(min1, max1, min2, max2):
         seq.append('g2.' + str(i))
     return seq
 
+def calc_time(g1_min, g1_max, g2_min, g2_max):
+    total_min = -145
+    total_max = 145
+    total_time = 15
+    total_range = total_max-total_min 
+    
+    velocity = total_range/total_time 
+    sweep_time = (g1_max-g1_min)/velocity 
+    num_sweeps = g2_max - g2_min 
+    total_sweep_time = sweep_time * num_sweeps 
+    sweep_move_time = (g2_max-g2_min)/velocity 
+    homing_time = 20
+
+    return total_sweep_time + sweep_move_time + homing_time
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--password', help='Password to connect to the NewportXPS')
@@ -173,36 +220,44 @@ def main():
     password = args.password
 
     fts = initialize_fts(password, num_sockets = 6)
-    g1_min = -145
-    g1_max = 145
-    g2_min = -80
-    g2_max = 120
+    g1_min = -95
+    g1_max = 118
+    g2_min = -145
+    g2_max = 140
     seq = write_seq(g1_min, g1_max, g2_min, g2_max)
     #seq = ['g2.-80', 'g1.-145', 'g1.145', 'g2.-40', 'g1.-145', 'g2.0', 'g1.145', 'g2.60', 'g1.-145', 'g2.120', 'g1.145', 'g2.-30', 'g1.0']
     #seq1 = [-145, 145, -145, 145]#, 10, 300, 8]
     #seq2 = [-120, 0, 110]#, 10, 300, 10, 400, 10]
-    time_length = 120
-    time_resolution = 0.2
+    time_length = calc_time(g1_min, g1_max, g2_min, g2_max)
+    time_resolution = 0.01
     channel = 'ai0'
     channel2 = 'ai4'
-    with ThreadPoolExecutor(max_workers=6) as executor:
+    with ThreadPoolExecutor(max_workers=4) as executor:
         
         g = executor.submit(move_group, fts, seq, socket=0)
         #a = executor.submit(move_group1, fts,seq1 , socket=0)
         #b = executor.submit(move_group2, fts,seq2 , socket=1)
+        e = executor.submit(nidaqmx_single_read, time_length, time_resolution, channel, 1)
         c = executor.submit(read_positions, fts, 2, time_length, time_resolution, 'Group1')
         d = executor.submit(read_positions, fts, 3, time_length, time_resolution, 'Group2')
-        e = executor.submit(nidaqmx_single_read, time_length, time_resolution, channel, 1)
-        #f = executor.submit(nidaqmx_single_read, time_length, time_resolution, channel2, 1)
+        
+    
         nida_times, readings = e.result()
         nida_times2, readings2 = [],[]#f.result()
         pos1_times,pos1  = c.result()
         pos2_times,pos2 = d.result()
-    
-    plot_readings_timestamps(readings, nida_times,nida_times2, readings2,channel,channel2, pos1, pos1_times, pos2, pos2_times)
+
+    x_pos = (pos1_times, pos1)
+    y_pos = (pos2_times, pos2)
+    volts = (nida_times, readings)
+    #x_pos, y_pos, volts are tuples
+
+    convert_to_rastor(x_pos, y_pos, volts)
+    #plot_readings_timestamps(readings, nida_times,nida_times2, readings2,channel,channel2, pos1, pos1_times, pos2, pos2_times)
  
 
 if __name__ == '__main__':
+    #convert_to_rastor(([1, 2, 3, 7],[4, 5, 6, 10]),([1, 5, 7],[2, 3, 4]),([7, 5, 3, 1],[1,2,3,4]))
     main()
   
     

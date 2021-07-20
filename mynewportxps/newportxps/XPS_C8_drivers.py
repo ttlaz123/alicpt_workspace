@@ -64,11 +64,11 @@ class XPS:
     def __sendAndReceive (self, socketId, command):
         # print("SEND REC ", command, type(command))
         try:
-            print(str((socketId, command)))
+            #print(str((socketId, command)))
             XPS.__sockets[socketId].send(six.b(command))
-            print('.')
+            #print('.')
             ret = bytes2str(XPS.__sockets[socketId].recv(1024))
-            print(ret)
+            #print(ret)
             while (ret.find(',EndOfAPI') == -1):
                 ret += bytes2str(XPS.__sockets[socketId].recv(1024))
         except socket.timeout:
