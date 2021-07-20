@@ -104,11 +104,15 @@ class NewportXPS:
     def connect(self):
         self._sid = self._xps.TCP_ConnectToServer(self.host,
                                                   self.port, self.timeout)
+       
         try:
-            self._xps.Login(self._sid, self.username, self.password)
+            err, val = self._xps.Login(self._sid, self.username, self.password)
+            passwordError = -196
+            if(int(err) == passwordError ):
+                raise XPSException('Incorrect Password: ' + str(err))
         except:
-            raise XPSException('Login failed for %s' % self.host)
-
+            raise XPSException('Login failed for %s and password %s' % (self.host, self.password))
+        
         err, val = self._xps.FirmwareVersionGet(self._sid)
         self.firmware_version = val
         self.ftphome = ''
@@ -125,6 +129,7 @@ class NewportXPS:
             self.read_systemini()
         except:
             print("Could not read system.ini!!!")
+            raise XPSException()
 
 
     def check_error(self, err, msg='', with_raise=True):
@@ -759,7 +764,7 @@ class NewportXPS:
         """
         if self.traj_group is None:
             print("Must set group name!")
-
+            
         traj = self.trajectories.get(name, None)
         if traj is None:
             raise XPSException("Cannot find trajectory named '%s'" %  name)
@@ -822,27 +827,36 @@ class NewportXPS:
         if self.traj_state != ARMED:
             raise XPSException("Must arm trajectory before running!")
 
-        buffer = ('Always', '%s.PVT.TrajectoryPulse' % self.traj_group,)
+        axis = ".Pos.SGamma.MotionStart"
+        #axis = ".PVT.TrajectoryPulse"
+        #buffer = ('Always', '%s%s' % (self.traj_group,axis))
+        buffer = ('%s%s' % (self.traj_group,axis),)
         err, ret = self._xps.EventExtendedConfigurationTriggerSet(self._sid, buffer,
                                                                   ('0','0'), ('0','0'),
                                                                   ('0','0'), ('0','0'))
         self.check_error(err, msg="EventConfigTrigger")
         if verbose:
             print( " EventExtended Trigger Set ", ret)
-
+        # command = 'GatheringOneData'
+        command = 'GatheringRun'
+        num_collections = 4000
+        collection_frequency = 0.001 # in milliseconds
+        machine_resolution = 8000
+        servo_cycles = int(collection_frequency * machine_resolution)
         err, ret = self._xps.EventExtendedConfigurationActionSet(self._sid,
-                                                            ('GatheringOneData',),
-                                                            ('',), ('',),('',),('',))
+                                                            (command,),
+                                                            (str(num_collections),), 
+                                                            (str(servo_cycles),),
+                                                            ('0',),('0',))
         self.check_error(err, msg="EventConfigAction")
         if verbose:
             print( " EventExtended Action  Set ", ret)
-
         eventID, m = self._xps.EventExtendedStart(self._sid)
         self.traj_state = RUNNING
-
         if verbose:
             print( " EventExtended ExtendedStart ", eventID, m)
 
+        
         err, ret = self._xps.MultipleAxesPVTExecution(self._sid,
                                                       self.traj_group,
                                                       self.traj_file, 1)
@@ -900,6 +914,7 @@ class NewportXPS:
                     break
                 nchunks = nchunks + 2
                 nx      = int((npulses-2) / nchunks)
+
                 if nchunks > 10:
                     print('looks like something is wrong with the XPS!')
                     break

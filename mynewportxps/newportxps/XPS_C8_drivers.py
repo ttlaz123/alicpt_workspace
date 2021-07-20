@@ -70,7 +70,8 @@ class XPS:
             ret = bytes2str(XPS.__sockets[socketId].recv(1024))
             #print(ret)
             while (ret.find(',EndOfAPI') == -1):
-                ret += bytes2str(XPS.__sockets[socketId].recv(1024))
+                re = bytes2str(XPS.__sockets[socketId].recv(1024))
+                ret += re
         except socket.timeout:
             return [-2, '']
         except socket.error as err: #  (errNb, errString):
@@ -89,7 +90,10 @@ class XPS:
         if socketId is None:
             socketId = self.socketId
         self.socketId = socketId
+        
+        print(cmd)
         err, msg = self.__sendAndReceive(socketId, cmd)
+        print('*********************')
         if err != 0 and check:
             raise XPSException(msg)
         return err, msg
@@ -286,7 +290,7 @@ class XPS:
                 command += ','
             command += ExtendedEventName[i] + ',' + EventParameter1[i] + ',' + EventParameter2[i] + ',' + EventParameter3[i] + ',' + EventParameter4[i]
         command += ')'
-
+        print('********************')
         return self.Send(socketId, command)
 
     # EventExtendedConfigurationTriggerGet :  Read the event configuration
@@ -302,7 +306,6 @@ class XPS:
                 command += ','
             command += ExtendedActionName[i] + ',' + ActionParameter1[i] + ',' + ActionParameter2[i] + ',' + ActionParameter3[i] + ',' + ActionParameter4[i]
         command += ')'
-
         return self.Send(socketId, command)
 
 
@@ -351,6 +354,7 @@ class XPS:
                 command += ','
             command += Type[i]
         command += ')'
+
         return self.Send(socketId, command)
 
     # GatheringCurrentNumberGet :  Maximum number of samples and current number during acquisition
@@ -1474,6 +1478,14 @@ class XPS:
             retList.append(eval(returnedString[i:i+j]))
             i, j = i+j+1, 0
         return retList
+    def PositionerSGammaVelocityAndAccelerationSet (self, socketId, GroupName, Velocity, Acceleration):
+        command = 'PositionerSGammaVelocityAndAccelerationSet(' + GroupName + ','
+      
+        command += str(Velocity)
+        command += ','
+        command += str(Acceleration)
+        command += ')'
+        return self.Send(socketId, command)
 
     # PositionerStageParameterGet :  Return the stage parameter
     def PositionerStageParameterGet (self, socketId, PositionerName, ParameterName):
