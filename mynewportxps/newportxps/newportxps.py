@@ -104,6 +104,7 @@ class NewportXPS:
     def connect(self):
         self._sid = self._xps.TCP_ConnectToServer(self.host,
                                                   self.port, self.timeout)
+        print(self._sid)
         print('Begin Login')
         try:
             #self._xps.Login(self._sid, self.username, self.password)
@@ -133,7 +134,7 @@ class NewportXPS:
             self.read_systemini()
         except:
             print("Could not read system.ini!!!")
-            raise XPSException("Could not read system.ini!!!")
+            raise AttributeError('Cannot read system initialization file')
         
 
     def check_error(self, err, msg='', with_raise=True):
