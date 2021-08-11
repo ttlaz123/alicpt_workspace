@@ -109,7 +109,7 @@ class NewportXPS:
             #self._xps.Login(self._sid, self.username, self.password)
             
             err, val = self._xps.Login(self._sid, self.username, self.password)
-            passwordError = -196
+            passwordError = -106
             if(int(err) == passwordError ):
                 raise XPSException('Incorrect Password: ' + str(err))
             
@@ -128,13 +128,13 @@ class NewportXPS:
             self.ftpconn = FTPWrapper(**self.ftpargs)
             if 'XPS-C' in self.firmware_version:
                 self.ftphome = '/Admin'
-        '''
+        
         try:
             self.read_systemini()
         except:
             print("Could not read system.ini!!!")
             raise XPSException("Could not read system.ini!!!")
-        '''
+        
 
     def check_error(self, err, msg='', with_raise=True):
         if err != 0:
@@ -546,9 +546,10 @@ class NewportXPS:
         """
         set velocity for stage
         """
+        print('Setting Velocity ------------')
         if stage not in self.stages:
             print("Stage '%s' not found" % stage)
-            return
+            raise XPSException('Stage not found')
         ret, v_cur, a_cur, jt0_cur, jt1_cur = \
              self._xps.PositionerSGammaParametersGet(self._sid, stage)
         if accl is None:

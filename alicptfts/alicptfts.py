@@ -85,7 +85,7 @@ class AlicptFTS:
         password : string (default is Administrator)
         """
         self.check_state('initialize')
-        default_velocity = 20.
+        
         # Current implementation considers only the XPS controller
         self.source = IR518()
         self.chopper = MC2000B()
@@ -114,9 +114,7 @@ class AlicptFTS:
         self.newportxps.home_allgroups()
         print('STATUS: Processed home search')
         self.state = FTSState.INIT
-        self.set_motion_params('MovingLinear',[default_velocity])
-        self.set_motion_params('PointingRotary', [default_velocity])
-        self.set_motion_params('PointingLinear', [default_velocity])
+        
 
 
     def configure(self, position, angle, relative=False):
@@ -544,12 +542,11 @@ class AlicptFTS:
         else:
             raise TypeError('ERROR: Require a list or float for parameters')
 
-        try:
-            self.newportxps.set_velocity(groupName[xps_grp]+'.Pos',
+      
+        self.newportxps.set_velocity(groupName[xps_grp]+'.Pos',
                                      velo=temp_par[0], accl=temp_par[1],
                                      min_jerktime=temp_par[2], max_jerktime=temp_par[3])
-        except Exception:
-            pass
+    
 
     
     def determine_num_chunks(self, total_lines, socket=0, max_lines=1000):
@@ -698,6 +695,15 @@ def old_main():
 def test_function(fts):
     scan_params = generate_scanparams(param_list=['Position'], point_types=['Setpoint'])
     print(scan_params)
+
+    default_velocity1 = 20.
+    default_velocity2 = 20.
+    default_velocity3 = 20.
+    fts.set_motion_params('MovingLinear',[default_velocity1])
+    fts.set_motion_params('PointingRotary', [default_velocity3])
+    fts.set_motion_params('PointingLinear', [default_velocity2])
+    print('STATUS: Done setting motion parameters')
+
     print('************ scanning params ******************')
     fts.scan(scan_params=scan_params, configure=(30, 5), scan_range=(20, 80), repeat=3)
     fts.scan(scan_params=scan_params, configure=(300, 50), scan_range=(20, 80), repeat=3)

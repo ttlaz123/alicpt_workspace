@@ -82,7 +82,7 @@ class XPS:
             if (ret[i] == ','):
                 return [int(ret[0:i]), ret[i+1:-9]]
 
-    def Send(self, socketId=None, cmd=None, check=False):
+    def Send(self, socketId=None, cmd=None, check=False, verbose=False):
         """send and receive command cmd from socketId
         if socketId is not given, self.socketId will be used
         with check=True, an XPSException will be raised on error.
@@ -91,11 +91,14 @@ class XPS:
             socketId = self.socketId
         self.socketId = socketId
         
-        print(cmd)
+        
+        if(verbose):
+            print(cmd)
         err, msg = self.__sendAndReceive(socketId, cmd)
-        print(err)
-        print(msg)
-        print('*********************')
+        if(verbose):
+            print(err)
+            print(msg)
+            print('*********************')
         if err != 0 and check:
             raise XPSException(msg)
         return err, msg
