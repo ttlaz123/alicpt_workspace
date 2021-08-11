@@ -93,6 +93,8 @@ class XPS:
         
         print(cmd)
         err, msg = self.__sendAndReceive(socketId, cmd)
+        print(err)
+        print(msg)
         print('*********************')
         if err != 0 and check:
             raise XPSException(msg)
@@ -109,7 +111,7 @@ class XPS:
                 return -1
         else:
             return -1
-
+        print('here ' + str(socketId))
         XPS.__usedSockets[socketId] = 1
         XPS.__nbSockets += 1
         try:

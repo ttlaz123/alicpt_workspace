@@ -3,6 +3,7 @@ import os
 import argparse
 import ntplib
 import time
+import csv
 
 from concurrent.futures import ThreadPoolExecutor
 import asyncio
@@ -137,16 +138,12 @@ def plot_readings_timestamps(readings, timestamps,readings2, timestamps2,  chann
     plt.legend()
     plt.show()
 
-def initialize_fts(password, num_sockets):
+def initialize_fts(password, num_sockets, IP):
     print('Initializing FTS')
     fts = AlicptFTS()
-    varlist = []
-
-    for i in ['Position', 'Velocity', 'Acceleration']:
-        for j in ['Current', 'Setpoint']:
-            for n in range(3):
-                varlist.append('Group'+str(n)+'.Pos.'+j + i)
-    x = fts.initialize('192.168.254.254','Administrator', password)
+    x = fts.initialize(IP,'Administrator', password)
+    #for i in range(num_sockets):
+    #    fts.newportxps.connect()
 
     print('Status: Finish initialization')
     fts.status()
@@ -214,13 +211,78 @@ def calc_time(g1_min, g1_max, g2_min, g2_max):
 
     return total_sweep_time + sweep_move_time + homing_time
 
-def main():
+
+def find_shortest_list(full_list):
+    shortest = full_list[0]
+    for i in full_list:
+        if len(i) <= len(shortest):
+            shortest = i
+    
+    return shortest
+
+
+def save_csv(x_pos, y_pos, volts):
+    fields = ['x_pos times', 'x_pos', 'y_pos times', 'y_pos', 'nida reading times', 'volts']
+    rows = []
+    shortest_list = find_shortest_list(list(x_pos) + list(y_pos) + list(volts))
+    for i in range(len(shortest_list) - 1):
+        rows.append([list(x_pos)[0][i], list(x_pos)[1][i], list(y_pos)[0][i], list(y_pos)[1][i], list(volts)[0][i], list(volts)[1][i]])
+    
+    with open('rastorplotdata.csv', 'w') as out:
+        csv_out = csv.writer(out)
+        csv_out.writerow(fields)
+        csv_out.writerows(rows)
+
+def HexapodMoveAbsolute(GroupName=None, CoordinateSystem=None, 
+                            X=0, Y=0, Z=0, U=0, V=0, W=0):
+    '''
+    Comments here
+    '''
+    if(GroupName is None):
+        GroupName = 'HEXAPOD'
+    if(CoordinateSystem is None):
+        CoordinateSystem = 'Work'
+    
+    params = ','.join([GroupName, CoordinateSystem, 
+                        str(X), str(Y), str(Z), str(U), str(V), str(W)])
+    command_name = 'HexapodMoveAbsolute'
+    cmd = command_name + '(' + params + ')'
+    return cmd
+
+
+def move_hexapod(fts):
+    '''
+    test function for moving hexapod
+    '''
+    x = 0
+    y = 0
+    z = -10
+    u = 0
+    v = 0
+    w = 0
+
+    generated_command = HexapodMoveAbsolute(X=x, Y=y, Z=z, U=u, V=v, W=w)
+    err, msg = fts.newportxps._xps.Send(socketId = 0, cmd = generated_command)
+    print(err, msg)
+
+    return 
+
+def main_2():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-p', '--password', help='Password to connect to the NewportXPS')
+    args = parser.parse_args()
+    password = args.password
+    fts = initialize_fts(password, num_sockets = 1, IP = '192.168.0.254')
+    move_hexapod(fts)
+    fts.close()
+
+def main_1():
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--password', help='Password to connect to the NewportXPS')
     args = parser.parse_args()
     password = args.password
 
-    fts = initialize_fts(password, num_sockets = 6)
+    
     g1_min = -95
     g1_max = 118
     g2_min = -145
@@ -251,7 +313,9 @@ def main():
     x_pos = (pos1_times, pos1)
     y_pos = (pos2_times, pos2)
     volts = (nida_times, readings)
-    #x_pos, y_pos, volts are tuples
+    #tuples of lists
+
+    save_csv(x_pos, y_pos, volts)
 
     convert_to_rastor(x_pos, y_pos, volts)
     #plot_readings_timestamps(readings, nida_times,nida_times2, readings2,channel,channel2, pos1, pos1_times, pos2, pos2_times)
@@ -301,7 +365,7 @@ def cycle_group(fts, groupname, start, end, numcycles, socket=0):
         err, ret = fts.newportxps._xps.GroupMoveAbsolute(socket, groupname, [start])
         err, ret = fts.newportxps._xps.GroupMoveAbsolute(socket, groupname, [end])
 
-def calc_time(movement_params):
+def FTS_calc_time(movement_params):
     # TODO write this
     return 80 # seconds
 
@@ -415,7 +479,7 @@ def fts_position_scan(fts, output_file, resolution, group_order=['Group1', 'Grou
     movement_params['config_list1'] = config1_list
     movement_params['config_list2'] = config2_list
 
-    movement_params['gather_time'] =  calc_time(movement_params) 
+    movement_params['gather_time'] =  FTS_calc_time(movement_params) 
     gather_data(fts, movement_params, group_order, gather_filename=output_file)
 
     return 
@@ -428,13 +492,13 @@ def main():
     args = parser.parse_args()
     password = args.password
     gather_filename = 'test_gather.dat'
-    fts = initialize_fts(password, num_sockets = 6)
+    fts = initialize_fts(password, num_sockets = 6, IP = '192.168.254.254')
     
     #scan_plate(fts)
     fts_position_scan(fts, gather_filename, 0.001, cycle_range=(20, 40), velocity=100, 
                         config1_list=[30, 100, 200, 400], config2_list=[2], num_cycles=10)
     fts.close()
- 
+
 
 def graph_position_data(dat_filename, sep=';'):
     ## ignores commented lines
@@ -450,8 +514,8 @@ def graph_position_data(dat_filename, sep=';'):
     return 
 if __name__ == '__main__':
     #convert_to_rastor(([1, 2, 3, 7],[4, 5, 6, 10]),([1, 5, 7],[2, 3, 4]),([7, 5, 3, 1],[1,2,3,4]))
-    main()
-    graph_position_data('test_gather.dat')
+    main_2()
+    #graph_position_data('test_gather.dat')
   
     
 def stream_test():
@@ -460,6 +524,7 @@ def stream_test():
         #task.ao_channels.add_ao_voltage_chan("Dev1/ao0")
         #writer = AnalogSingleChannelWriter(task.out_stream)
         reader = AnalogSingleChannelReader(task.in_stream)
+        
         '''
         values_to_test = np.array(
                     [random.random() for _ in
@@ -470,9 +535,11 @@ def stream_test():
         #x = writer.write_many_sample(values_to_test)
         task.stop()
         '''
+        
         values_read = np.zeros(100)
         task.start()
         x = reader.read_many_sample(values_read, number_of_samples_per_channel=100)
         task.stop()
         print(values_read)
         print(x)
+        

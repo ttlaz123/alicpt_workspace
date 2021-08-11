@@ -106,8 +106,8 @@ class AlicptFTS:
                 pass
         print('*********** initializing groups *****************')
 
-        self.stop()
-        self.newportxps.initialize_allgroups()
+        #self.stop()
+        #self.newportxps.initialize_allgroups()
         print('STATUS: Initialized all groups')
         self.newportxps.home_allgroups()
         print('STATUS: Processed home search')

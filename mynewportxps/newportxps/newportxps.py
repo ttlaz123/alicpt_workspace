@@ -104,12 +104,15 @@ class NewportXPS:
     def connect(self):
         self._sid = self._xps.TCP_ConnectToServer(self.host,
                                                   self.port, self.timeout)
-       
+        print('Begin Login')
         try:
+            #self._xps.Login(self._sid, self.username, self.password)
+            
             err, val = self._xps.Login(self._sid, self.username, self.password)
             passwordError = -196
             if(int(err) == passwordError ):
                 raise XPSException('Incorrect Password: ' + str(err))
+            
         except:
             raise XPSException('Login failed for %s and password %s' % (self.host, self.password))
         
@@ -125,12 +128,13 @@ class NewportXPS:
             self.ftpconn = FTPWrapper(**self.ftpargs)
             if 'XPS-C' in self.firmware_version:
                 self.ftphome = '/Admin'
+        '''
         try:
             self.read_systemini()
         except:
             print("Could not read system.ini!!!")
-            raise XPSException()
-
+            raise XPSException("Could not read system.ini!!!")
+        '''
 
     def check_error(self, err, msg='', with_raise=True):
         if err != 0:
@@ -166,7 +170,9 @@ class NewportXPS:
         """read group info from system.ini
         this is part of the connection process
         """
+        print(self.ftpargs)
         self.ftpconn.connect(**self.ftpargs)
+        print('here')
         self.ftpconn.cwd(posixpath.join(self.ftphome, 'Config'))
         lines = self.ftpconn.getlines('system.ini')
         self.ftpconn.close()
