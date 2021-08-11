@@ -708,6 +708,7 @@ def main():
     parser.add_argument('-p', '--password', help='Password to connect to the NewportXPS',
                         default="password")
     parser.add_argument('-a', '--ip_address', help="ip address of newport xps machine", 
+                        default='192.168.254.254')
     args = parser.parse_args()
     
     password = args.password
