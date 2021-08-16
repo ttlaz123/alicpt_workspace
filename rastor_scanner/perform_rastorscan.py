@@ -206,7 +206,7 @@ def calc_time(g1_min, g1_max, g2_min, g2_max):
 
     return total_sweep_time + sweep_move_time + homing_time
 
-
+'''
 def find_shortest_list(full_list):
     shortest = full_list[0]
     for i in full_list:
@@ -214,19 +214,34 @@ def find_shortest_list(full_list):
             shortest = i
     
     return shortest
-
+'''
 
 def save_csv(x_pos, y_pos, volts):
-    fields = ['x_pos times', 'x_pos', 'y_pos times', 'y_pos', 'nida reading times', 'volts']
-    rows = []
+    x_fields = ['x_pos times', 'x_pos']
+    x_rows = []
+    y_fields = ['y_pos times', 'y_pos']
+    y_rows = []
+    volts_fields = ['nida reading times', 'volts']
+    volts_rows = []
+    '''
     shortest_list = find_shortest_list(list(x_pos) + list(y_pos) + list(volts))
     for i in range(len(shortest_list) - 1):
         rows.append([list(x_pos)[0][i], list(x_pos)[1][i], list(y_pos)[0][i], list(y_pos)[1][i], list(volts)[0][i], list(volts)[1][i]])
-    
-    with open('rastorplotdata.csv', 'w') as out:
+    '''
+    with open('x_pos.csv', 'w') as out:
         csv_out = csv.writer(out)
-        csv_out.writerow(fields)
-        csv_out.writerows(rows)
+        csv_out.writerow(x_fields)
+        csv_out.writerows(x_rows)
+
+    with open('y_pos.csv', 'w') as out:
+        csv_out = csv.writer(out)
+        csv_out.writerow(y_fields)
+        csv_out.writerows(y_rows)
+
+    with open('volts.csv', 'w') as out:
+        csv_out = csv.writer(out)
+        csv_out.writerow(volts_fields)
+        csv_out.writerows(volts_rows)
 
 
 def main_1():
@@ -236,8 +251,8 @@ def main_1():
     password = args.password
 
     
-    g1_min = -95
-    g1_max = 118
+    g1_min = 1#-95
+    g1_max = 15#118
     g2_min = -145
     g2_max = 140
     seq = write_seq(g1_min, g1_max, g2_min, g2_max)
