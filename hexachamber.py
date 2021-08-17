@@ -55,6 +55,9 @@ class Positioner:
     def __init__(self, host, group_name='Group3', stage_name='Group3.Pos',
                     username='Administrator', password='xxxxx', 
                     default_velocity=5, default_increment=1):
+        '''
+        TODO write comments
+        '''
         self.newportxps = NewportXPS(host=host, username=username, password=password)
         self.group_name = group_name 
         self.stage_name = stage_name 
@@ -63,11 +66,15 @@ class Positioner:
         self.increment = default_increment
     
     def get_xps(self):
+        '''
+        TODO write comments
+        '''
         return self.newportxps._xps 
 
     def reinitialize(self, kill_groups=True):
         '''
         reinitializes the positioner
+        TODO write comments
         '''
         print('STATUS:Reinitializing')
         if(kill_groups):
@@ -82,6 +89,7 @@ class Positioner:
     def generate_velocity_set_command(self, velocity):
         '''
         Generates the command
+        TODO write comments
         '''
         cmd_name = 'PositionerSGammaVelocityAndAccelerationSet('
         params = ','.join([str(self.stage_name), str(velocity), str(Positioner.MAX_ACCEL)])

@@ -20,8 +20,6 @@ print(" Current directory: " + str(os.getcwd()))
 sys.path.append(r'.')
 sys.path.append(r'lib')
 sys.path.append(r'..')
-sys.path.append(r'../alicptfts')
-sys.path.append(r'../alicptfts/alicptfts')
 
 # import lib.MC2000B_COMMAND_LIB as mc2000b
 # import MC2000B_COMMAND_LIB as mc2000b
@@ -56,10 +54,12 @@ class IR518:
         pass
 
 class AlicptFTS:
+    HOME = (8, 0)
     def __init__(self):
         self.source = None
         self.chopper = None
         self.newportxps = None 
+        self.config = AlicptFTS.HOME
         self.state = FTSState.NOTINIT
         self.ntpObj = None
 
@@ -143,7 +143,10 @@ class AlicptFTS:
             # self.newportxps.move_stage(groupName[MovingLinear]+'.Pos',0 ,relative)
             self.newportxps.move_stage(groupName['PointingLinear']+'.Pos',position,relative)
             self.newportxps.move_stage(groupName['PointingRotary']+'.Pos',angle,relative)
-
+            if(relative):
+                self.config = (position + self.config[0], angle + self.config[1])
+            else:
+                self.config = (position, angle)
         except Exception:
             pass
 
@@ -231,7 +234,7 @@ class AlicptFTS:
         time_end = time.time()
         return time_start, time_end
 
-    def scan(self, configure=(0,0), scan_params=None, scan_range=None, repeat=5, velocity=200, accel=600, filename=None):
+    def scan(self, configure=None, scan_params=None, scan_range=None, repeat=5, velocity=200, accel=600, filename=None):
         """Perform a scan with the configured stages.
         
         Parameters
@@ -270,7 +273,10 @@ class AlicptFTS:
             min_range = 0
             max_range = 500
             scan_range = [min_range, max_range]
-        self.configure(configure[0], configure[1])
+        if(configure is not None):
+            self.configure(configure[0], configure[1])
+        else:
+            configure = self.config
         gather_time = 20 #self.calculate_gather_time()
         gather_resolution = 0.001
         event_ID, trigger_start_group = self.gather_data_setup(gather_time, gather_resolution, scan_params)
@@ -549,7 +555,7 @@ class AlicptFTS:
     
 
     
-    def determine_num_chunks(self, total_lines, socket=0, max_lines=1000):
+    def determine_num_chunks(self, total_lines, socket=0, max_entries=5000):
         """Determines the number of chunks to breakup the Gathering.dat file
             to be able to read into python
         
@@ -562,7 +568,7 @@ class AlicptFTS:
             the xps socket to connect to in order to execute this command
         
         max_lines : int
-            maximum number of lines to read in per chunk
+            maximum number of entries to read in per chunk
 
         Returns 
         -----------
@@ -570,6 +576,10 @@ class AlicptFTS:
             number of chunks to break up Gathering.dat
         """
         
+        ret, msg = self.newportxps._xps.GatheringDataMultipleLinesGet(socket, 0, 1)
+        num_entries = len(msg.split(';'))
+        print(num_entries)
+        max_lines = max_entries / num_entries
         nchunks = int(total_lines/max_lines)+1
         num_lines = total_lines 
         success = False
@@ -578,15 +588,16 @@ class AlicptFTS:
             ret, _ = self.newportxps._xps.GatheringDataMultipleLinesGet(socket, 0, int(num_lines))
             print('Current number of lines ' + str(num_lines))
             if(ret < 0):
-                nchunks += 2
+                nchunks *= 1.5
                 num_lines = total_lines/nchunks 
+                
             else:
                 print('Success')
                 success = True 
             
             if(num_lines < 10):
                 raise AttributeError('XPS not reading even though small enough chunks')
-        return nchunks 
+        return int(nchunks) 
 
     def read_and_save(self, filename, headers, socket=0):
         """Reads the Gathering.dat file on the XPS machine and saves it 
