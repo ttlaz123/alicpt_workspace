@@ -1,11 +1,11 @@
 import csv
 from PIL.Image import new
 from sklearn.datasets import make_regression
-from matplotlib import pyplot as plt
+import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.linear_model import LinearRegression
 from scipy.interpolate import interp1d 
-from pandas import *
+import pandas as pd
 
 def find_differences(readings):
     #readings is a list
@@ -18,27 +18,84 @@ def find_differences(readings):
 
     return differences
 
-def perform_rastor_interpolation(x_pos, x_times, y_pos, y_times):
+def perform_rastor_interpolation(x_pos, x_times, y_pos, y_times, volts, v_times):
     '''
     produces a function that provides times as a function of x and y
     assumes the data is split into specific chunks
     x_pos scans up and down while y_pos shifts one at a time
     assumes we start at y = min_y
     '''
-    y_pos = np.round(y_pos, decimals=3)
+    y_pos = np.round(y_pos, decimals=2)
+    x_pos = np.round(x_pos, decimals=2)
 
     min_y = int(min(y_pos))
     max_y = int(max(y_pos))
     min_x = int(min(x_pos))
     max_x = int(max(x_pos))
 
-    x_range = max_x-min_x + 1
-    y_range = max_y-min_y + 1
-
+    x_range = max_x-min_x 
+    y_range = max_y-min_y 
+    print(min_y)
+    print(max_y)
+    print(min_x)
+    print(max_x)
     rastor_t = np.zeros((x_range, y_range))
 
+    y_dict = {}
+    for i in range(len(y_pos)):
+        y = y_pos[i]
+        if(y == int(y)):
+            if(y in y_dict):
+                y_dict[y].append(i)
+            else:
+                y_dict[y] = [i]
+
+    x_count = 0
     for y in range(min_y, max_y):
-        ts = np.where(y_pos, y)
+        #print('processing y = ' +str(y))
+        y_indices = y_dict[y]
+        
+        ts = [y_times[i] for i in y_indices]
+        min_t = min(ts)
+        max_t = max(ts)
+        #print(min_t)
+        #print(max_t)
+
+        while(x_times[x_count] < min_t):
+            x_count += 1
+
+        lower_x_bound = x_count 
+        while(x_times[x_count] < max_t):
+            x_count += 1
+        upper_x_bound = x_count + 1
+
+        xs = x_pos[lower_x_bound: upper_x_bound+1]
+        #print(min(xs))
+        #print(max(xs))
+        
+        txs = x_times[lower_x_bound: upper_x_bound+1]
+        interpx = interp1d(xs, txs)
+        y_ind = y-min_y
+        #print(y_ind)
+        for x in range(min_x, max_x ):
+            t = interpx(x)
+            rastor_t[x-min_x, y_ind] = t
+    
+               
+    #plt.imshow(rastor_t)
+    #plt.show()
+
+    interpv = interp1d(v_times, volts)
+    rastor = np.zeros((x_range, y_range))
+
+    print('completed 2d gridding')
+    for x in range(x_range):
+        for y in range(y_range):
+            t = rastor_t[x,y]
+            rastor[x,y] = interpv(t)
+    plt.imshow(rastor)
+    plt.show()
+    return rastor
 
 
 def find_least_squares_regression(pos, volt_readings):
@@ -118,11 +175,33 @@ def combine_csv(x_stamps, y_stamps, v_stamps):
 
     return v, x, y
 
+def delete_empty_rows(file_path, new_file_path):
+    data = pd.read_csv(file_path, skip_blank_lines=True)
+    data.dropna(how="all", inplace=True)
+    data.to_csv(new_file_path, header=True, index=False)
+
+def read_files():
+    xfile = 'x_pos_fixed.csv'
+    yfile = 'y_pos_fixed.csv'
+    vfile = 'volts_fixed.csv'
+    x = pd.read_csv(xfile)
+    y = pd.read_csv(yfile)
+    v = pd.read_csv(vfile)
+
+    x_pos = list(x['x_pos'])
+    x_times = list(x['x_pos times'])
+    y_pos = list(y['y_pos'])
+    y_times = list(y['y_pos times'])
+    volts = list(v['volts'])
+    v_times = list(v['nida reading times'])
+    print('here')
+    perform_rastor_interpolation(x_pos, x_times, y_pos, y_times, volts, v_times)
+
 def main():
+    #delete_empty_rows('x_pos.csv', 'x_pos_fixed.csv')
+    read_files()
+    return
     
-    x = read_csv('x_pos.csv')
-    y = read_csv('y_pos.csv')
-    v = read_csv('volts.csv')
 
     x_stamps = x[['x_pos times', 'x_pos']]
     y_stamps = y[['y_pos times', 'y_pos']]
