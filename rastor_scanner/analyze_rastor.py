@@ -18,6 +18,29 @@ def find_differences(readings):
 
     return differences
 
+def perform_rastor_interpolation(x_pos, x_times, y_pos, y_times):
+    '''
+    produces a function that provides times as a function of x and y
+    assumes the data is split into specific chunks
+    x_pos scans up and down while y_pos shifts one at a time
+    assumes we start at y = min_y
+    '''
+    y_pos = np.round(y_pos, decimals=3)
+
+    min_y = int(min(y_pos))
+    max_y = int(max(y_pos))
+    min_x = int(min(x_pos))
+    max_x = int(max(x_pos))
+
+    x_range = max_x-min_x + 1
+    y_range = max_y-min_y + 1
+
+    rastor_t = np.zeros((x_range, y_range))
+
+    for y in range(min_y, max_y):
+        ts = np.where(y_pos, y)
+
+
 def find_least_squares_regression(pos, volt_readings):
     num_col = pos.shape[1]
     rank = np.linalg.matrix_rank(pos)
