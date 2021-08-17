@@ -112,7 +112,7 @@ def read_positions(fts, socket, time_length, time_resolution, group_name):
         #print(time_start)
         #print(time_end)
         times.append((time_start + time_end)/2)
-        readings.append(x)
+        readings.append(float(x))
         time.sleep(time_resolution)
         n+=1
         time_elapsed = time.time()-time0 
@@ -148,9 +148,9 @@ def move_group(fts, pos, socket):
     for p in pos:
         pos_spec = p.split('.')
         if pos_spec[0] == 'g1':
-            fts.newportxps.move_stage(groupName['MovingLinear']+'.Pos', int(pos_spec[1]), False, socket=socket)
+            fts.newportxps.move_stage('Group1.Pos', int(pos_spec[1]), False, socket=socket)
         elif pos_spec[0] == 'g2':
-            fts.newportxps.move_stage(groupName['PointingLinear']+'.Pos', int(pos_spec[1]), False, socket=socket)
+            fts.newportxps.move_stage('Group2.Pos', int(pos_spec[1]), False, socket=socket)
     return
 
 def move_group1(fts, pos, socket):
@@ -228,6 +228,16 @@ def save_csv(x_pos, y_pos, volts):
     for i in range(len(shortest_list) - 1):
         rows.append([list(x_pos)[0][i], list(x_pos)[1][i], list(y_pos)[0][i], list(y_pos)[1][i], list(volts)[0][i], list(volts)[1][i]])
     '''
+
+    for i in range(len(list(x_pos)[0])):
+        x_rows.append([list(x_pos)[0][i], list(x_pos)[1][i]])
+    
+    for i in range(len(list(y_pos)[0])):
+        y_rows.append([list(y_pos)[0][i], list(y_pos)[1][i]])
+
+    for i in range(len(list(volts)[0])):
+        volts_rows.append([list(volts)[0][i], list(volts)[1][i]])
+
     with open('x_pos.csv', 'w') as out:
         csv_out = csv.writer(out)
         csv_out.writerow(x_fields)
@@ -244,15 +254,17 @@ def save_csv(x_pos, y_pos, volts):
         csv_out.writerows(volts_rows)
 
 
-def main_1():
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--password', help='Password to connect to the NewportXPS')
     args = parser.parse_args()
     password = args.password
+    IP_address = '192.168.254.254'
 
+    fts = initialize_fts(password=password, num_sockets=4, IP=IP_address)
     
-    g1_min = 1#-95
-    g1_max = 15#118
+    g1_min = -90
+    g1_max = 125
     g2_min = -145
     g2_max = 140
     seq = write_seq(g1_min, g1_max, g2_min, g2_max)
@@ -288,4 +300,5 @@ def main_1():
     convert_to_rastor(x_pos, y_pos, volts)
     #plot_readings_timestamps(readings, nida_times,nida_times2, readings2,channel,channel2, pos1, pos1_times, pos2, pos2_times)
     
-### END RASTOR SCANNING CODE
+if __name__ == '__main__':
+    main()

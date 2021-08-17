@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 from sklearn.linear_model import LinearRegression
 from scipy.interpolate import interp1d 
-
+from pandas import *
 
 def find_differences(readings):
     #readings is a list
@@ -86,12 +86,35 @@ def convert_to_rastor(x_pos, y_pos, volts):
     plt.imshow(rastor)
     plt.show()
 
+def combine_csv(x_stamps, y_stamps, v_stamps):
+    x_times, x_pos = x_stamps
+    y_times, y_pos = y_stamps 
+    v_times, v_pos = v_stamps 
+    
+    interp2d
+
+    return v, x, y
+
 def main():
     
-    f = open('rastorplotdata.csv')
-    csv_f = csv.reader(f)
-    next(csv_f)
+    x = read_csv('x_pos.csv')
+    y = read_csv('y_pos.csv')
+    v = read_csv('volts.csv')
 
+    x_stamps = x[['x_pos times', 'x_pos']]
+    y_stamps = y[['y_pos times', 'y_pos']]
+    v_stamps = v[['nida reading times', 'volts']]
+    #all stamps are array objects
+
+    print("x shape:")
+    print(x_stamps.shape)
+    print('y shape:')
+    print(y_stamps.shape)
+    #v, x, y, = combine_csv(x_stamps, y_stamps, v_stamps)
+
+    print(v)
+
+    '''
     pos = []
     x_pos = []
     y_pos = []
@@ -106,7 +129,7 @@ def main():
         volt_readings.append(float(row[5]))
 
     convert_to_rastor(x_pos, y_pos, volt_readings)
-'''
+
     pos = np.array(list(filter(lambda x: (x != [None,None]), pos)))
     volt_readings = np.array(list(filter(None, volt_readings)))
 
