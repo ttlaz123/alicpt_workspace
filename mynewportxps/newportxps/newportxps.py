@@ -104,7 +104,7 @@ class NewportXPS:
     def connect(self):
         self._sid = self._xps.TCP_ConnectToServer(self.host,
                                                   self.port, self.timeout)
-        print(self._sid)
+        print('Connected to socket: ' + str(self._sid))
         print('Begin Login')
         try:
             #self._xps.Login(self._sid, self.username, self.password)
@@ -171,9 +171,9 @@ class NewportXPS:
         """read group info from system.ini
         this is part of the connection process
         """
-        print(self.ftpargs)
+        print('Login params: ' + str(self.ftpargs))
         self.ftpconn.connect(**self.ftpargs)
-        print('here')
+        print('Successfully logged in')
         self.ftpconn.cwd(posixpath.join(self.ftphome, 'Config'))
         lines = self.ftpconn.getlines('system.ini')
         self.ftpconn.close()

@@ -114,7 +114,7 @@ class XPS:
                 return -1
         else:
             return -1
-        print('here ' + str(socketId))
+        print('Connecting to socket: ' + str(socketId))
         XPS.__usedSockets[socketId] = 1
         XPS.__nbSockets += 1
         try:
@@ -295,7 +295,6 @@ class XPS:
                 command += ','
             command += ExtendedEventName[i] + ',' + EventParameter1[i] + ',' + EventParameter2[i] + ',' + EventParameter3[i] + ',' + EventParameter4[i]
         command += ')'
-        print('********************')
         return self.Send(socketId, command)
 
     # EventExtendedConfigurationTriggerGet :  Read the event configuration
@@ -379,9 +378,7 @@ class XPS:
 
     # GatheringStopAndSave :  Stop acquisition and save data
     def GatheringStopAndSave (self, socketId):
-        print('here2')
         x = self.Send(socketId, 'GatheringStopAndSave()')
-        print('here3')
         return x
 
 
