@@ -22,4 +22,54 @@ git submodule update --init --recursive ## clone newportxps
 ```
 ### Resource
 https://github.com/pyepics/newportxps
+
+## Outline of Alicpt Workspace
+### Alicptfts
+The code is maintained by Shu-Xiao and controls the three groups for the Fourier Transform Spectrometer
+### Rastor_Scanner
+The code is maintained by Laura Futamura and contains the functions for determining the topology of plates.
+### Hexachamber
+The code is maintained by Tom Liu. Contains the code necessary for manual control of the Hexapod with the keyboard, while simultaneously controlling the movement of a newportxps positioner.
+* Instructions for startup
+    * Enter the folder where `hexachamber.py` is saved, and see the program input options with `python hexachamber.py -h`. 
+        * The code connects to two different NewportXPS machines, one controlling the Hexapod, and one controlling the positioner.
+    * Identify the IP and password for the Hexapod and Positioner. Typically the IP is either `192.168.0.254` or `192.168.254.254`, and are stored as the default values, so they do not need to be entered unless the physical setup has changed.
+    * Use the `-r` flag if the positioner and hexapod need to be reinitialized, or have not yet been initialized. This process typically takes some time to perform, so if the NewportXPS machines are already up and running, this flag isn't necessary. This can be checked by opening the control panels for the machines on the browser.
+    * Ensure both XPS machines are connected before running the code
+* Instructions for keyboard operation
+    * Instructions for moving Hexapod and Positioner shown below
+    * Each key enters
+    * `Toggle verbose` removes all the debugging statements.
+```
+General Commands:
+----------------------------------------------
+To see instructions again: h
+Toggle verbose z
+Change the increment by which the hexapod moves: c
+Change the increment by which the positioner moves: b
+Change the velocity by which the positioner moves: v
+Exit program: x
+----------------------------------------------
+Hexapod Commands:
+----------------------------------------------
+Move Hexapod Closer: s
+Move Hexapod Further: w
+Move Hexapod Left: a
+Move Hexapod Right: d
+Tilt Hexapod Away: i
+Tilt Hexapod Toward: k
+Tilt Hexapod Left: j
+Tilt Hexapod Right: l
+Rotate Hexapod Counter Clockwise: u
+Rotate Hexapod Clockwise: o
+Zeros all coordinates on Hexapod: 0
+----------------------------------------------
+Positioner Commands:
+----------------------------------------------
+Move Positioner Closer: m
+Move Positioner Further: n
+Zeros all coordinates on Positioner: 0
+----------------------------------------------
+```
+
     

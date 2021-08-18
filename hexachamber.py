@@ -622,13 +622,13 @@ def main():
     
     password = args.pos_password
     IP = args.pos_ip
-    #positioner = initialize_positioner(password, IP = IP, reinitialize=args.reinitialize)
+    positioner = initialize_positioner(password, IP = IP, reinitialize=args.reinitialize)
     
     password = args.hex_password
     IP = args.hex_ip
-    hexapod = initialize_hexapod(password, IP = IP, reinitialize=args.reinitialize, xps=None)#positioner.get_xps())
+    hexapod = initialize_hexapod(password, IP = IP, reinitialize=args.reinitialize, xps=positioner.get_xps())
 
-    move_xps_machines(hexapod, None)
+    move_xps_machines(hexapod, positioner)
     
     hexapod.close()
     positioner.close()
