@@ -38,24 +38,29 @@ The code is maintained by Tom Liu. Contains the code necessary for manual contro
     * Ensure both XPS machines are connected before running the code
 * Instructions for keyboard operation
     * Instructions for moving Hexapod and Positioner shown below
-    * Each key enters
-    * `Toggle verbose` removes all the debugging statements.
+    * Each key press enters a command. Only one command can be sent to each XPS machine at a time (If requested, we can add a feature that allows submission of  multiple commands to the Hexapod at once)
+    * `Toggle verbose` removes all the info statements.
+    * `Toggle debug` removes all the debug statements.
 ```
+**********************************************
+Instructions for moving Hexapod and Positioner
+**********************************************
 General Commands:
 ----------------------------------------------
 To see instructions again: h
-Toggle verbose z
+Toggle verbose (prints information whenever a command is run if True): z
+Toggle debug (prints debugging information about the current command being run if True): x
 Change the increment by which the hexapod moves: c
 Change the increment by which the positioner moves: b
 Change the velocity by which the positioner moves: v
-Exit program: x
+Exit program: q
 ----------------------------------------------
 Hexapod Commands:
 ----------------------------------------------
-Move Hexapod Closer: s
-Move Hexapod Further: w
-Move Hexapod Left: a
-Move Hexapod Right: d
+Shift Hexapod Closer: s
+Shift Hexapod Further: w
+Shift Hexapod Left: a
+Shift Hexapod Right: d
 Tilt Hexapod Away: i
 Tilt Hexapod Toward: k
 Tilt Hexapod Left: j
@@ -66,8 +71,8 @@ Zeros all coordinates on Hexapod: 0
 ----------------------------------------------
 Positioner Commands:
 ----------------------------------------------
-Move Positioner Closer: m
-Move Positioner Further: n
+Move Positioner Down: ,
+Move Positioner Up: .
 Zeros all coordinates on Positioner: 0
 ----------------------------------------------
 ```

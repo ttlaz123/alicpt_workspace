@@ -114,7 +114,7 @@ class XPS:
                 return -1
         else:
             return -1
-        print('Connecting to socket: ' + str(socketId))
+        print('Connecting to socket: ' + str(socketId) + ' ...')
         XPS.__usedSockets[socketId] = 1
         XPS.__nbSockets += 1
         try:

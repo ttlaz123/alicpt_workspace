@@ -40,7 +40,14 @@ from mynewportxps.newportxps.ftp_wrapper import SFTPWrapper, FTPWrapper
 from mynewportxps.newportxps import NewportXPS
 from alicptfts.alicptfts import AlicptFTS
 
-
+## TODO put this in some sort of enum or something
+CHANGE_VERBOSE = 'z'
+CHANGE_DEBUG = 'x'
+EXIT = 'q'
+CHANGE_HEX_INCREMENT = 'c'
+CHANGE_POS_INCREMENT = 'b'
+CHANGE_POS_VELOCITY = 'v'
+HELP = 'h'
 class Positioner:
     MIN_VEL = 0.001
     MAX_VEL = 5
@@ -49,8 +56,8 @@ class Positioner:
     MIN_INCR = 0.001
     MAX_INCR = 10
 
-    UP = 'n'
-    DOWN = 'm'
+    UP = '.'
+    DOWN = ','
     ZERO = '0'
     def __init__(self, host, group_name='Group3', stage_name='Group3.Pos',
                     username='Administrator', password='xxxxx', 
@@ -76,7 +83,7 @@ class Positioner:
         reinitializes the positioner
         TODO write comments
         '''
-        print('STATUS:Reinitializing')
+        print('STATUS: Reinitializing')
         if(kill_groups):
             self.newportxps.kill_group(self.group_name)
 
@@ -84,7 +91,6 @@ class Positioner:
         print('STATUS: Initialized group: ' + self.group_name)
         self.newportxps.home_group(self.group_name)
         print('STATUS: Processed home search')
-        print('STATUS: Finished Initialization')
     
     def generate_velocity_set_command(self, velocity):
         '''
@@ -135,28 +141,28 @@ class Positioner:
         self.increment = default_incr
         return default_incr
 
-    def arrow_move(self, pressed_key, verbose=True):
+    def arrow_move(self, pressed_key, verbose=True, debug=False):
         '''
         Moves positioner up and down
         '''
         
         
-        if(verbose):
-            print('Pressed key: ' + str(pressed_key))
+        if(debug):
+            print('    Pressed key: ' + str(pressed_key))
         if(pressed_key == Positioner.UP):
             if(verbose):
                 print('Moving up...')
             try:
                 self.newportxps.move_stage(stage=self.stage_name, value = self.increment, relative=True)
             except XPSException:
-                print('Movement too far')
+                print('Movement too far or positioner not initialized')
         elif(pressed_key == Positioner.DOWN):
             if(verbose):
                 print('Moving down...')
             try:
                 self.newportxps.move_stage(stage=self.stage_name, value = -self.increment, relative=True)
             except XPSException:
-                print('Movement too far')
+                print('Movement too far or positioner not initialized')
 
         
         elif(pressed_key == Positioner.ZERO):
@@ -165,11 +171,11 @@ class Positioner:
             self.newportxps.move_stage(stage=self.stage_name, value = 0, relative=False)     
 
         else:
-            if(verbose):
-                print('INVALID POSITIONER COMMAND: ' + str(pressed_key))
+            if(debug):
+                print('    INVALID POSITIONER COMMAND: ' + str(pressed_key))
             return -1 
         if(verbose):
-            print('Command done')
+            print('Positioner Command done')
 
         return 0
 
@@ -182,8 +188,8 @@ class Positioner:
     
     
     def arrow_command_instructions():
-        down_cmd = 'Move Positioner Closer: ' + Positioner.DOWN
-        up_cmd = 'Move Positioner Further: ' + Positioner.UP
+        down_cmd = 'Move Positioner Down: ' + Positioner.DOWN
+        up_cmd = 'Move Positioner Up: ' + Positioner.UP
         zero_cmd = 'Zeros all coordinates on Positioner: ' + Positioner.ZERO 
 
         cmd = '\n'.join([down_cmd, up_cmd, zero_cmd])
@@ -287,8 +293,7 @@ class HexaChamber:
     def connect(self):
         self.sid = self.xps.TCP_ConnectToServer(self.host,
                                                   self.port, self.timeout)
-        print('Socked ID:' + str(self.sid))
-        print('Begin Login')
+        print('Connected to socket: ' + str(self.sid))
         try:
             
             err, val = self.xps.Login(self.sid, self.username, self.password)
@@ -354,14 +359,14 @@ class HexaChamber:
         cmd = command_name + '(' + params + ')'
         return cmd 
     
-    def incremental_move(self, coord_sys=None, dX=0, dY=0, dZ=0, dU=0, dV=0, dW=0, verbose=False):
+    def incremental_move(self, coord_sys=None, dX=0, dY=0, dZ=0, dU=0, dV=0, dW=0, debug=False):
         '''
         performs the actual movement
         '''
         generated_command = self.HexapodMoveIncrementalCmd(CoordinateSystem=coord_sys,
                                     dX=dX, dY=dY, dZ=dZ, dU=dU, dV=dV, dW=dW)
-        if(verbose):
-            print('Socket: ' + str(self.sid))
+        if(debug):
+            print('        Socket: ' + str(self.sid))
         err, msg = self.xps.Send(socketId=self.sid, cmd = generated_command)
         return err, msg
 
@@ -382,55 +387,55 @@ class HexaChamber:
             return  
         self.velocity = default_velocity
 
-    def arrow_move(self, pressed_key, verbose=True):
+    def arrow_move(self, pressed_key, verbose=True, debug=False):
         '''
         moves the hexapod depending on pressed keys
         TODO: comment, allow people to change the keybindings?
         '''
 
-        if(verbose):
-            print('Key pressed: ' + str(pressed_key))
+        if(debug):
+            print('    Pressed key: ' + str(pressed_key))
         if(pressed_key == HexaChamber.LEFT):
             if(verbose):
                 print('Moving left...')
-            self.incremental_move(dY=self.velocity, verbose=verbose)
+            self.incremental_move(dY=self.velocity, debug=debug)
         elif(pressed_key == HexaChamber.RIGHT):
             if(verbose):
                 print('Moving right...')
-            self.incremental_move(dY=-self.velocity, verbose=verbose)
+            self.incremental_move(dY=-self.velocity, debug=debug)
         elif(pressed_key == HexaChamber.UP):
             if(verbose):
                 print('Moving further...')
-            self.incremental_move(dX=self.velocity, verbose=verbose)
+            self.incremental_move(dX=self.velocity, debug=debug)
         elif(pressed_key == HexaChamber.DOWN):
             if(verbose):
                 print('Moving closer...')
-            self.incremental_move(dX=-self.velocity, verbose=verbose)
+            self.incremental_move(dX=-self.velocity, debug=debug)
 
         elif(pressed_key == HexaChamber.TLEFT):
             if(verbose):
                 print('Tilting left...')
-            self.incremental_move(dU=-self.velocity, verbose=verbose)
+            self.incremental_move(dU=-self.velocity, debug=debug)
         elif(pressed_key == HexaChamber.TRIGHT):
             if(verbose):
                 print('Tilting right...')
-            self.incremental_move(dU=self.velocity, verbose=verbose)
+            self.incremental_move(dU=self.velocity, debug=debug)
         elif(pressed_key == HexaChamber.TFOR):
             if(verbose):
                 print('Tilting away...')
-            self.incremental_move(dV=self.velocity, verbose=verbose)
+            self.incremental_move(dV=self.velocity, debug=debug)
         elif(pressed_key == HexaChamber.TBACK):
             if(verbose):
                 print('Tilting toward...')
-            self.incremental_move(dV=-self.velocity, verbose=verbose)
+            self.incremental_move(dV=-self.velocity, debug=debug)
         elif(pressed_key == HexaChamber.RCCW):
             if(verbose):
                 print('Rotating Counterclockwise...')
-            self.incremental_move(dW=self.velocity, verbose=verbose)
+            self.incremental_move(dW=self.velocity, debug=debug)
         elif(pressed_key == HexaChamber.RCW):
             if(verbose):
                 print('Rotating Clockwise...')
-            self.incremental_move(dW=-self.velocity, verbose=verbose)    
+            self.incremental_move(dW=-self.velocity, debug=debug)    
   
         elif(pressed_key == HexaChamber.ZERO):
             if(verbose):
@@ -438,11 +443,11 @@ class HexaChamber:
             self.recenter_hexapod()   
 
         else:
-            if(verbose):
-                print('INVALID HEXAPOD COMMAND: ' + str(pressed_key))
+            if(debug):
+                print('    INVALID HEXAPOD COMMAND: ' + str(pressed_key))
             return -1
         if(verbose):
-            print('Command done')
+            print('Hexapod Command done')
         
         return 0
     
@@ -460,10 +465,10 @@ class HexaChamber:
             pass
 
     def arrow_command_instructions():
-        down_cmd = 'Move Hexapod Closer: ' + HexaChamber.DOWN
-        up_cmd = 'Move Hexapod Further: ' + HexaChamber.UP
-        left_cmd = 'Move Hexapod Left: ' + HexaChamber.LEFT 
-        right_cmd = 'Move Hexapod Right: ' + HexaChamber.RIGHT 
+        down_cmd = 'Shift Hexapod Closer: ' + HexaChamber.DOWN
+        up_cmd = 'Shift Hexapod Further: ' + HexaChamber.UP
+        left_cmd = 'Shift Hexapod Left: ' + HexaChamber.LEFT 
+        right_cmd = 'Shift Hexapod Right: ' + HexaChamber.RIGHT 
         tfor_cmd = 'Tilt Hexapod Away: ' + HexaChamber.TFOR 
         tback_cmd = 'Tilt Hexapod Toward: ' + HexaChamber.TBACK 
         tleft_cmd = 'Tilt Hexapod Left: ' + HexaChamber.TLEFT 
@@ -482,9 +487,11 @@ def initialize_positioner(password, IP, username='Administrator', reinitialize=F
     '''
     initializes positioner
     '''
+    print('STATUS: Initializing Positioner')
     pos = Positioner(host=IP, username=username, password=password)
     if(reinitialize):
         pos.reinitialize()
+    print('STATUS: Finished Initializing Positioner')
     return pos
 
 def initialize_hexapod(password, IP, username='Administrator', xps=None, reinitialize=False):
@@ -493,20 +500,20 @@ def initialize_hexapod(password, IP, username='Administrator', xps=None, reiniti
     xps needed if we want to control both positioner and hexapod on same computer
     TODO: add comments
     """
-    print('Initializing Hexapod')
+    print('STATUS: Initializing Hexapod')
     
     hex = HexaChamber(host=IP, username=username, password=password, xps=xps)
     if(reinitialize):
         hex.initialize()
-    print('STATUS: Finished Initialization')
+    print('STATUS: Finished Initializing Hexapod')
     return hex
 
 
-def move_hex_manual(hex, key, verbose):
-    hex.arrow_move(key, verbose)
+def move_hex_manual(hex, key, verbose, debug):
+    hex.arrow_move(key, verbose, debug)
 
-def move_pos_manual(pos, key, verbose):
-    pos.arrow_move(key, verbose)
+def move_pos_manual(pos, key, verbose, debug):
+    pos.arrow_move(key, verbose, debug)
 
 def generate_instructions():
     print('**********************************************')
@@ -527,21 +534,16 @@ def generate_instructions():
     return 
 
 def settings_instructions():
-    CHANGE_VERBOSE = 'z'
-    EXIT = 'x'
-    CHANGE_HEX_INCREMENT = 'c'
-    CHANGE_POS_INCREMENT = 'b'
-    CHANGE_POS_VELOCITY = 'v'
-    HELP = 'h'
 
     help_cmd = 'To see instructions again: ' + HELP
-    verb_cmd = 'Toggle verbose ' + CHANGE_VERBOSE
+    verb_cmd = 'Toggle verbose (prints information whenever a command is run if True): ' + CHANGE_VERBOSE 
+    debug_cmd = 'Toggle debug (prints debugging information about the current command being run if True): ' + CHANGE_DEBUG
     exit_cmd = 'Exit program: ' + EXIT
     hexincr_cmd = 'Change the increment by which the hexapod moves: ' + CHANGE_HEX_INCREMENT
     posincr_cmd = 'Change the increment by which the positioner moves: '  + CHANGE_POS_INCREMENT
     posvel_cmd = 'Change the velocity by which the positioner moves: '  + CHANGE_POS_VELOCITY
 
-    cmd = '\n'.join([help_cmd, verb_cmd, hexincr_cmd, posincr_cmd, posvel_cmd, exit_cmd])
+    cmd = '\n'.join([help_cmd, verb_cmd,debug_cmd, hexincr_cmd, posincr_cmd, posvel_cmd, exit_cmd])
     return cmd
 
 def move_xps_machines(hex, pos):
@@ -550,27 +552,30 @@ def move_xps_machines(hex, pos):
     pos_thread = threading.Thread(target=move_pos_manual, args=[ pos, pressed_key])
 
     verbose = True
+    debug = False
 
-    CHANGE_VERBOSE = 'z'
-    EXIT = 'x'
-    CHANGE_HEX_INCREMENT = 'c'
-    CHANGE_POS_INCREMENT = 'b'
-    CHANGE_POS_VELOCITY = 'v'
-    HELP = 'h'
-      
-        
+    
     while(True):
         pressed_key = msvcrt.getwch()
 
         if(pressed_key == EXIT):
-            break
+            if(hex_thread.is_alive()):
+                print('    Cannot exit: Hexapod is still running!')
+            elif(pos_thread.is_alive()):
+                print('    Cannot exit: Positioner is still running!')
+            else:
+                break
         elif(pressed_key == HELP):
             generate_instructions()
             continue 
 
+        elif(pressed_key == CHANGE_DEBUG):
+            debug = not debug
+            print('~~~~ Debug setting: ' + str(debug) + ' ~~~~')
+            continue
         elif(pressed_key == CHANGE_VERBOSE):
             verbose = not verbose
-            print('Verbose setting: ' + str(verbose))
+            print('~~~~ Verbose setting: ' + str(verbose) + ' ~~~~')
             continue
         elif(pressed_key == CHANGE_HEX_INCREMENT):
             print('Enter hexapod default velocity (' + str(HexaChamber.MIN_VEL) + ' to ' +
@@ -594,17 +599,17 @@ def move_xps_machines(hex, pos):
         
         if(hex_thread.is_alive()):
             if(verbose):
-                print('Hexapod still running')
+                print('    Hexapod still running')
         else:
-            hex_thread = threading.Thread(target=move_hex_manual, args=[ hex, pressed_key, verbose])
+            hex_thread = threading.Thread(target=move_hex_manual, args=[ hex, pressed_key, verbose, debug])
             hex_thread.start()
             
 
         if(pos_thread.is_alive()):
             if(verbose):
-                print('Positioner still running')
+                print('    Positioner still running')
         else:
-            pos_thread = threading.Thread(target=move_pos_manual, args=[ pos, pressed_key, verbose])
+            pos_thread = threading.Thread(target=move_pos_manual, args=[ pos, pressed_key, verbose, debug])
             pos_thread.start()
             
 
@@ -620,19 +625,22 @@ def main():
                         help='Whether to reinitialize the xps machines')
     args = parser.parse_args()
     
+    print('****************************')
     password = args.pos_password
     IP = args.pos_ip
     positioner = initialize_positioner(password, IP = IP, reinitialize=args.reinitialize)
     
+    print('****************************')
     password = args.hex_password
     IP = args.hex_ip
     hexapod = initialize_hexapod(password, IP = IP, reinitialize=args.reinitialize, xps=positioner.get_xps())
-
+    print('************* Starting Keyboard Control ***************')
+    print('Press ' + HELP + ' for help')
     move_xps_machines(hexapod, positioner)
-    
+    print('************ Closing Sockets ****************')
     hexapod.close()
     positioner.close()
 
 if __name__ == '__main__':
-    generate_instructions()
+    #generate_instructions()
     main()
