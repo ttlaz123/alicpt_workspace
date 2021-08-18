@@ -194,7 +194,7 @@ def write_seq(min1, max1, min2, max2):
 def calc_time(g1_min, g1_max, g2_min, g2_max):
     total_min = -145
     total_max = 145
-    total_time = 15
+    total_time = 30
     total_range = total_max-total_min 
     
     velocity = total_range/total_time 

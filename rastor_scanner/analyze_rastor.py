@@ -97,6 +97,22 @@ def perform_rastor_interpolation(x_pos, x_times, y_pos, y_times, volts, v_times)
     plt.show()
     return rastor
 
+def matrix_to_list(rastor, max_v=5, max_x=200, min_x=10, min_y=5, max_y=210):
+    shape = rastor.shape
+    pos = []
+    volt_readings = []
+    for x in range(shape[0]):
+        if x > max_x or x < min_x:
+            continue
+        for y in range(shape[1]):
+            v = rastor[x,y]
+            if v >= max_v:
+                continue
+            if y > max_y or y < min_y:
+                continue
+            pos.append([x,y,1])
+            volt_readings.append(v)
+    return pos, volt_readings
 
 def find_least_squares_regression(pos, volt_readings):
     num_col = pos.shape[1]
@@ -166,15 +182,6 @@ def convert_to_rastor(x_pos, y_pos, volts):
     plt.imshow(rastor)
     plt.show()
 
-def combine_csv(x_stamps, y_stamps, v_stamps):
-    x_times, x_pos = x_stamps
-    y_times, y_pos = y_stamps 
-    v_times, v_pos = v_stamps 
-    
-    interp2d
-
-    return v, x, y
-
 def delete_empty_rows(file_path, new_file_path):
     data = pd.read_csv(file_path, skip_blank_lines=True)
     data.dropna(how="all", inplace=True)
@@ -195,50 +202,18 @@ def read_files():
     volts = list(v['volts'])
     v_times = list(v['nida reading times'])
     print('here')
-    perform_rastor_interpolation(x_pos, x_times, y_pos, y_times, volts, v_times)
+    
+    return x_pos, x_times, y_pos, y_times, volts, v_times
+
 
 def main():
     #delete_empty_rows('x_pos.csv', 'x_pos_fixed.csv')
-    read_files()
+    x_pos, x_times, y_pos, y_times, volts, v_times = read_files()
+    rastor = perform_rastor_interpolation(x_pos, x_times, y_pos, y_times, volts, v_times)
+    pos, volt_readings = matrix_to_list(rastor)
+    coeff, error = find_least_squares_regression(np.array(pos), np.array(volt_readings))
+    new_volts = subtract_plane(pos, volt_readings, coeff)
     return
     
-
-    x_stamps = x[['x_pos times', 'x_pos']]
-    y_stamps = y[['y_pos times', 'y_pos']]
-    v_stamps = v[['nida reading times', 'volts']]
-    #all stamps are array objects
-
-    print("x shape:")
-    print(x_stamps.shape)
-    print('y shape:')
-    print(y_stamps.shape)
-    #v, x, y, = combine_csv(x_stamps, y_stamps, v_stamps)
-
-    print(v)
-
-    '''
-    pos = []
-    x_pos = []
-    y_pos = []
-    volt_readings = []
-
-    for row in csv_f:
-        if row[0] == '':
-            continue
-        #pos.append([float(row[1]), float(row[3]), 1])
-        x_pos.append(float(row[1]))
-        y_pos.append(float(row[3]))
-        volt_readings.append(float(row[5]))
-
-    convert_to_rastor(x_pos, y_pos, volt_readings)
-
-    pos = np.array(list(filter(lambda x: (x != [None,None]), pos)))
-    volt_readings = np.array(list(filter(None, volt_readings)))
-
-    coeff, error = find_least_squares_regression(pos, volt_readings)
-
-    new_volts = subtract_plane(pos, volt_readings, coeff)
-    print("subtracted plane")
-    '''
 if __name__ == '__main__':
     main()
