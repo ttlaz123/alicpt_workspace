@@ -172,10 +172,10 @@ class Positioner:
 
         else:
             if(debug):
-                print('    INVALID POSITIONER COMMAND: ' + str(pressed_key))
+                print('        INVALID POSITIONER COMMAND: ' + str(pressed_key))
             return -1 
         if(verbose):
-            print('Positioner Command done')
+            print('Positioner Command done: ' + pressed_key)
 
         return 0
 
@@ -444,10 +444,10 @@ class HexaChamber:
 
         else:
             if(debug):
-                print('    INVALID HEXAPOD COMMAND: ' + str(pressed_key))
+                print('        INVALID HEXAPOD COMMAND: ' + str(pressed_key))
             return -1
         if(verbose):
-            print('Hexapod Command done')
+            print('Hexapod Command done: ' + pressed_key)
         
         return 0
     
