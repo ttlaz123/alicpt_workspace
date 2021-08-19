@@ -516,21 +516,21 @@ def move_pos_manual(pos, key, verbose, debug):
     pos.arrow_move(key, verbose, debug)
 
 def generate_instructions():
-    print('**********************************************')
-    print('Instructions for moving Hexapod and Positioner')
-    print('**********************************************')
+    print('************************************************************')
+    print('****** Instructions for moving Hexapod and Positioner ******')
+    print('************************************************************')
     print('General Commands:')
-    print('----------------------------------------------')
+    print('---------------------')
     print(settings_instructions())
-    print('----------------------------------------------')
+    print('---------------------')
     print('Hexapod Commands:')
-    print('----------------------------------------------')
+    print('---------------------')
     print(HexaChamber.arrow_command_instructions())
-    print('----------------------------------------------')
+    print('---------------------')
     print('Positioner Commands:')
-    print('----------------------------------------------')
+    print('---------------------')
     print(Positioner.arrow_command_instructions())
-    print('----------------------------------------------')
+    print('_________________________')
     return 
 
 def settings_instructions():
