@@ -31,6 +31,9 @@ The code is maintained by Laura Futamura and contains the functions for determin
 ### Hexachamber
 The code is maintained by Tom Liu. Contains the code necessary for manual control of the Hexapod with the keyboard, while simultaneously controlling the movement of a newportxps positioner.
 * Instructions for startup
+```
+python hexachamber.py -p xxxxxx -q xxxxxx
+```
     * Enter the folder where `hexachamber.py` is saved, and see the program input options with `python hexachamber.py -h`. 
         * The code connects to two different NewportXPS machines, one controlling the Hexapod, and one controlling the positioner.
     * Identify the IP and password for the Hexapod and Positioner. Typically the IP is either `192.168.0.254` or `192.168.254.254`, and are stored as the default values, so they do not need to be entered unless the physical setup has changed.
