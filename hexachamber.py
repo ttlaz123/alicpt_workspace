@@ -65,7 +65,12 @@ class Positioner:
         '''
         TODO write comments
         '''
-        self.newportxps = NewportXPS(host=host, username=username, password=password)
+        self.newportxps = None
+        try:
+            self.newportxps = NewportXPS(host=host, username=username, password=password)
+        except XPSException:
+            print(' ********** Log in failed. Continuing without positioner *********')
+
         self.group_name = group_name 
         self.stage_name = stage_name 
         
@@ -76,6 +81,9 @@ class Positioner:
         '''
         TODO write comments
         '''
+        if(self.newportxps is None):
+            print('Not connected to NewportXPS')
+            return None
         return self.newportxps._xps 
 
     def reinitialize(self, kill_groups=True):
@@ -119,7 +127,10 @@ class Positioner:
             print('Velocity not within acceptable range: ' + str(default_velocity))
             return self.velocity
         cmd = self.generate_velocity_set_command(velocity)
-        self.newportxps._xps.Send(cmd = cmd)
+        try:
+            self.newportxps._xps.Send(cmd = cmd)
+        except AttributeError:
+            print('XPS positioner not connected')
         return default_velocity
     
     def set_incr(self, incr):
@@ -183,8 +194,11 @@ class Positioner:
         '''
         close sockets
         '''
-        self.newportxps.ftpconn.close()
-        self.newportxps._xps.CloseAllOtherSockets(self.newportxps._sid)
+        try:             # copy from reboot function
+            self.newportxps.ftpconn.close()
+            self.newportxps._xps.CloseAllOtherSockets(self._sid)
+        except AttributeError:
+            pass
     
     
     def arrow_command_instructions():
@@ -510,10 +524,15 @@ def initialize_hexapod(password, IP, username='Administrator', xps=None, reiniti
 
 
 def move_hex_manual(hex, key, verbose, debug):
-    hex.arrow_move(key, verbose, debug)
-
+    try:
+        hex.arrow_move(key, verbose, debug)
+    except AttributeError:
+        print('XPS hexapod not connected')
 def move_pos_manual(pos, key, verbose, debug):
-    pos.arrow_move(key, verbose, debug)
+    try:
+        pos.arrow_move(key, verbose, debug)
+    except AttributeError:
+        print('XPS positioner not connected')
 
 def generate_instructions():
     print('************************************************************')
