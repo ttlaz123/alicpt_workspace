@@ -109,10 +109,10 @@ class AlicptFTS:
         ### sometimes the groups are already initialized
         if(kill_groups):
             self.stop()
-        self.newportxps.initialize_allgroups()
-        print('STATUS: Initialized all groups')
-        self.newportxps.home_allgroups()
-        print('STATUS: Processed home search')
+            self.newportxps.initialize_allgroups()
+            print('STATUS: Initialized all groups')
+            self.newportxps.home_allgroups()
+            print('STATUS: Processed home search')
         self.state = FTSState.INIT
         
 

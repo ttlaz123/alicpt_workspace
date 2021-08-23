@@ -85,8 +85,8 @@ def nidaqmx_single_read(time_length, time_resolution, channel='ai0', tasknumber=
         time_elapsed = time.time()-time0 
         #print(time_elapsed)
         while(time_elapsed < time_length):
-            if(n%10 == 0):
-                print('Reading sample ' + str(n))
+            if(n%100 == 0):
+                print('Reading voltage sample ' + str(n))
             time_start = time.time()
             x = task.read() 
             time_end = time.time()
@@ -104,8 +104,8 @@ def read_positions(fts, socket, time_length, time_resolution, group_name):
     time_elapsed = time.time() - time0 
     n = 0
     while(time_elapsed < time_length):
-        if(n%10 == 0):
-            print('Reading sample ' + str(n))
+        if(n%100 == 0):
+            print('Reading position sample ' + str(n) + ' after ' + str(time_elapsed) + ' of ' + str(time_length) + ' seconds')
         time_start = time.time()
         x = fts.newportxps.get_stage_position(group_name + '.Pos', socket)
         time_end = time.time()
@@ -133,10 +133,10 @@ def plot_readings_timestamps(readings, timestamps,readings2, timestamps2,  chann
     plt.legend()
     plt.show()
 
-def initialize_fts(password, num_sockets, IP):
+def initialize_fts(password, num_sockets, IP, reinitialize=False):
     print('Initializing FTS')
     fts = AlicptFTS()
-    x = fts.initialize(IP,'Administrator', password)
+    x = fts.initialize(IP,'Administrator', password, kill_groups=reinitialize)
     for i in range(num_sockets):
         fts.newportxps.connect()
 
@@ -191,10 +191,9 @@ def write_seq(min1, max1, min2, max2):
         seq.append('g2.' + str(i))
     return seq
 
-def calc_time(g1_min, g1_max, g2_min, g2_max):
+def calc_time(total_time, g1_min, g1_max, g2_min, g2_max):
     total_min = -145
     total_max = 145
-    total_time = 30
     total_range = total_max-total_min 
     
     velocity = total_range/total_time 
@@ -202,7 +201,7 @@ def calc_time(g1_min, g1_max, g2_min, g2_max):
     num_sweeps = g2_max - g2_min 
     total_sweep_time = sweep_time * num_sweeps 
     sweep_move_time = (g2_max-g2_min)/velocity 
-    homing_time = 20
+    homing_time = 40
 
     return total_sweep_time + sweep_move_time + homing_time
 
@@ -261,17 +260,18 @@ def main():
     password = args.password
     IP_address = '192.168.254.254'
 
-    fts = initialize_fts(password=password, num_sockets=4, IP=IP_address)
+    fts = initialize_fts(password=password, num_sockets=4, IP=IP_address, reinitialize=False)
     
-    g1_min = -90
-    g1_max = 125
-    g2_min = -145
-    g2_max = 140
+    g1_min = -95
+    g1_max = 140
+    g2_min =-110
+    g2_max = 145
     seq = write_seq(g1_min, g1_max, g2_min, g2_max)
     #seq = ['g2.-80', 'g1.-145', 'g1.145', 'g2.-40', 'g1.-145', 'g2.0', 'g1.145', 'g2.60', 'g1.-145', 'g2.120', 'g1.145', 'g2.-30', 'g1.0']
     #seq1 = [-145, 145, -145, 145]#, 10, 300, 8]
     #seq2 = [-120, 0, 110]#, 10, 300, 10, 400, 10]
-    time_length = calc_time(g1_min, g1_max, g2_min, g2_max)
+    single_sweep_time = 21
+    time_length = calc_time(single_sweep_time, g1_min, g1_max, g2_min, g2_max)
     time_resolution = 0.01
     channel = 'ai0'
     channel2 = 'ai4'
