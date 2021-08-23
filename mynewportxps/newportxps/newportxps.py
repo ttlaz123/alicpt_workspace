@@ -105,7 +105,6 @@ class NewportXPS:
         self._sid = self._xps.TCP_ConnectToServer(self.host,
                                                   self.port, self.timeout)
         print('Connected to socket: ' + str(self._sid))
-        print('Begin Login')
         try:
             #self._xps.Login(self._sid, self.username, self.password)
             
@@ -171,9 +170,8 @@ class NewportXPS:
         """read group info from system.ini
         this is part of the connection process
         """
-        print('Login params: ' + str(self.ftpargs))
+        print('Reading system file with params: ' + str(self.ftpargs))
         self.ftpconn.connect(**self.ftpargs)
-        print('Successfully logged in')
         self.ftpconn.cwd(posixpath.join(self.ftphome, 'Config'))
         lines = self.ftpconn.getlines('system.ini')
         self.ftpconn.close()
@@ -448,7 +446,7 @@ class NewportXPS:
         if with_encoder:
             method  = 'GroupInitializeWithEncoderCalibration'
         #group = group + '.Pos'
-        print('*************' + str(group) + '******************')
+        print('************* Initializing ' + str(group) + '******************')
         self._group_act(method, group=group, action='initializing',
                         with_raise=with_raise)
         if home:
