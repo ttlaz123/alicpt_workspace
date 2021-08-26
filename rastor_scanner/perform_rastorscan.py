@@ -256,6 +256,7 @@ def save_csv(x_pos, y_pos, volts):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--password', help='Password to connect to the NewportXPS')
+    parser.add_argument('-r', '--reinitialize', action='store_true', help='Whether to reinitialize the device')
     args = parser.parse_args()
     password = args.password
     IP_address = '192.168.254.254'
@@ -264,7 +265,7 @@ def main():
     
     g1_min = -95
     g1_max = 140
-    g2_min =-110
+    g2_min = -110
     g2_max = 145
     seq = write_seq(g1_min, g1_max, g2_min, g2_max)
     #seq = ['g2.-80', 'g1.-145', 'g1.145', 'g2.-40', 'g1.-145', 'g2.0', 'g1.145', 'g2.60', 'g1.-145', 'g2.120', 'g1.145', 'g2.-30', 'g1.0']

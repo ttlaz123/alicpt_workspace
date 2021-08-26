@@ -21,7 +21,7 @@ def find_differences(readings):
 
     return differences
 
-def perform_rastor_interpolation(x_pos, x_times, y_pos, y_times, volts, v_times):
+def perform_rastor_interpolation(x_pos, x_times, y_pos, y_times, volts, v_times, min_y, max_y, min_x, max_x):
     '''
     produces a function that provides times as a function of x and y
     assumes the data is split into specific chunks
@@ -30,11 +30,6 @@ def perform_rastor_interpolation(x_pos, x_times, y_pos, y_times, volts, v_times)
     '''
     y_pos = np.round(y_pos, decimals=2)
     x_pos = np.round(x_pos, decimals=2)
-
-    min_y = int(min(y_pos))
-    max_y = int(max(y_pos))
-    min_x = int(min(x_pos))
-    max_x = int(max(x_pos))
 
     x_range = max_x-min_x 
     y_range = max_y-min_y 
@@ -52,8 +47,13 @@ def perform_rastor_interpolation(x_pos, x_times, y_pos, y_times, volts, v_times)
                 y_dict[y] = [i]
 
     x_count = 0
+    #print('y_dict: ' + str(y_dict))
+    print('y_dict keys: ' + str(y_dict.keys()))
     for y in range(min_y, max_y):
         #print('processing y = ' +str(y))
+        #print('y_dict[y] = ' + str(y_dict[y]))
+        if y not in y_dict:
+            continue
         y_indices = y_dict[y]
         
         ts = [y_times[i] for i in y_indices]
@@ -78,8 +78,8 @@ def perform_rastor_interpolation(x_pos, x_times, y_pos, y_times, volts, v_times)
         #print(x_count)
 
         xs = x_pos[lower_x_bound: upper_x_bound+1]
-        #print(min(xs))
-        #print(max(xs))
+        #print('min(xs)' + str(min(xs)))
+        #print('max(xs)' + str(max(xs)))
         
         txs = x_times[lower_x_bound: upper_x_bound+1]
         interpx = interp1d(xs, txs)
@@ -88,7 +88,10 @@ def perform_rastor_interpolation(x_pos, x_times, y_pos, y_times, volts, v_times)
         #for x in range(int(min(xs)), int(max(xs))):
         for x in range(min_x, max_x):
             #print(x)
-            t = interpx(x)
+            try:
+                t = interpx(x)
+            except ValueError:
+                raise ValueError('Value x=' + str(x) + ' is outside of range: ' + str(min(xs)) + ' ' + str(max(xs)))
             rastor_t[x-min_x, y_ind] = t
 
 
@@ -103,7 +106,7 @@ def perform_rastor_interpolation(x_pos, x_times, y_pos, y_times, volts, v_times)
 
     return rastor
 
-def matrix_to_list(rastor, max_v, max_x, min_x, min_y, max_y):
+def matrix_to_list(rastor, max_v=9999, max_x=9999, min_x=-9999, min_y=-9999, max_y=9999):
     shape = rastor.shape
     pos = []
     volt_readings = []
@@ -231,20 +234,30 @@ def main():
                         help='prefix of scan names')
     args = parser.parse_args()
 
-    max_v = 10
-    max_x = 207
-    min_x = 20
-    min_y = 20
-    max_y = 275
+    min_y = -110
+    max_y = 145
+    min_x = -95
+    max_x = 140
+    crop_max_v = 10
+    crop_max_x = 207
+    crop_min_x = 20
+    crop_min_y = 20
+    crop_max_y = 275 
     x_pos, x_times, y_pos, y_times, volts, v_times = read_files(args.folder, args.prefix)
-    rastor = perform_rastor_interpolation(x_pos, x_times, y_pos, y_times, volts, v_times)
+    rastor = perform_rastor_interpolation(x_pos, x_times, y_pos, y_times, volts, v_times, min_y, max_y, min_x, max_x)
 
     title = 'Before Cropping'
     scale_name = 'Heights (mm)'
     show_scan(rastor, title, scale_name)
-    pos, volt_readings = matrix_to_list(rastor, max_v=max_v, max_x=max_x, min_x=min_x, min_y=min_y, max_y=max_y)
+    pos, volt_readings = matrix_to_list(rastor, max_v=crop_max_v, max_x=crop_max_x, min_x=crop_min_x, min_y=crop_min_y, max_y=crop_max_y)
     coeff, error = find_least_squares_regression(np.array(pos), np.array(volt_readings))
+    pos_uncropped, volt_readings_uncropped = matrix_to_list(rastor)
+    
+    #Cropped Version:
     new_volts, new_rastor, meas_rastor = subtract_plane(pos, volt_readings, coeff)
+    
+    #Uncropped Version:
+    #new_volts, new_rastor, meas_rastor = subtract_plane(pos_uncropped, volt_readings_uncropped, coeff)
 
 
     title = 'Raw Heights Topology Map'
