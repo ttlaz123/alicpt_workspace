@@ -234,15 +234,15 @@ def main():
                         help='prefix of scan names')
     args = parser.parse_args()
 
-    min_y = -110
-    max_y = 145
-    min_x = -95
-    max_x = 140
+    min_y = -125
+    max_y = 135
+    min_x = -120
+    max_x = 145
     crop_max_v = 10
-    crop_max_x = 207
-    crop_min_x = 20
-    crop_min_y = 20
-    crop_max_y = 275 
+    crop_max_x = 240
+    crop_min_x = 15
+    crop_min_y = 15
+    crop_max_y = 240
     x_pos, x_times, y_pos, y_times, volts, v_times = read_files(args.folder, args.prefix)
     rastor = perform_rastor_interpolation(x_pos, x_times, y_pos, y_times, volts, v_times, min_y, max_y, min_x, max_x)
 
@@ -254,10 +254,10 @@ def main():
     pos_uncropped, volt_readings_uncropped = matrix_to_list(rastor)
     
     #Cropped Version:
-    new_volts, new_rastor, meas_rastor = subtract_plane(pos, volt_readings, coeff)
+    #new_volts, new_rastor, meas_rastor = subtract_plane(pos, volt_readings, coeff)
     
     #Uncropped Version:
-    #new_volts, new_rastor, meas_rastor = subtract_plane(pos_uncropped, volt_readings_uncropped, coeff)
+    new_volts, new_rastor, meas_rastor = subtract_plane(pos_uncropped, volt_readings_uncropped, coeff)
 
 
     title = 'Raw Heights Topology Map'
@@ -266,9 +266,9 @@ def main():
     scale_name = 'Height Deviation from Plane (mm)'
     title = 'Subtracted Plane Topology Map'
 
-    vmin = -0.02
-    vmax = 0.01
-    show_scan(new_rastor, title ,scale_name , norm = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax))
+    vmin = -0.035
+    vmax = 0.025
+    show_scan(new_rastor, title ,scale_name, norm = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax))
     return
     
 if __name__ == '__main__':
