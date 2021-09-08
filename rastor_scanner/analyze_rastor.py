@@ -21,18 +21,26 @@ def find_differences(readings):
 
     return differences
 
-def perform_rastor_interpolation(x_pos, x_times, y_pos, y_times, volts, v_times, min_y, max_y, min_x, max_x):
+def perform_rastor_interpolation(x_pos, x_times, y_pos, y_times, volts, v_times,
+                         min_y=None, max_y=None, min_x=None, max_x=None, debug=False):
     '''
     produces a function that provides times as a function of x and y
     assumes the data is split into specific chunks
     x_pos scans up and down while y_pos shifts one at a time
     assumes we start at y = min_y
     '''
-    y_pos = np.round(y_pos, decimals=2)
+    y_pos = np.round(y_pos, decimals=0)
     x_pos = np.round(x_pos, decimals=2)
-
-    x_range = max_x-min_x 
-    y_range = max_y-min_y 
+    if(max_x is None):
+        max_x = int(max(x_pos))
+    if(max_y is None):
+        max_y = int(max(y_pos))
+    if(min_x is None):
+        min_x = int(min(x_pos))
+    if(min_y is None):
+        min_y = int(min(y_pos))
+    x_range = int(max_x-min_x) 
+    y_range = int(max_y-min_y) 
     print('Minimum (x,y): (' + str(min_x) + ', ' + str(min_y) + ')')
     print('Maximum (x,y): (' + str(max_x) + ', ' + str(max_y) + ')')
     rastor_t = np.zeros((x_range, y_range))
@@ -47,11 +55,13 @@ def perform_rastor_interpolation(x_pos, x_times, y_pos, y_times, volts, v_times,
                 y_dict[y] = [i]
 
     x_count = 0
-    #print('y_dict: ' + str(y_dict))
-    print('y_dict keys: ' + str(y_dict.keys()))
+    if(debug):
+        print('y_dict: ' + str(y_dict))
+        print('y_dict keys: ' + str(y_dict.keys()))
     for y in range(min_y, max_y):
-        #print('processing y = ' +str(y))
-        #print('y_dict[y] = ' + str(y_dict[y]))
+        if(debug):
+            print('processing y = ' +str(y))
+            print('y_dict[y] = ' + str(y_dict[y]))
         if y not in y_dict:
             continue
         y_indices = y_dict[y]
@@ -59,39 +69,47 @@ def perform_rastor_interpolation(x_pos, x_times, y_pos, y_times, volts, v_times,
         ts = [y_times[i] for i in y_indices]
         min_t = min(ts)
         max_t = max(ts)
-        #print(min_t)
-        #print(max_t)
+        
+        if(debug):
+            print(min_t)
+            print(max_t)
 
         while(x_times[x_count] < min_t):
             x_count += 1
 
         lower_x_bound = x_count 
 
-        #print("min x_count:")
-        #print(x_count)
+        if(debug):
+            print("min x_count:")
+            print(x_count)
 
         while(x_times[x_count] < max_t):
             x_count += 1
+            if(x_count == len(x_times)):
+                break
         upper_x_bound = x_count + 1
 
-        #print("max x_count:")
-        #print(x_count)
+        if(debug):
+            print("max x_count:")
+            print(x_count)
 
         xs = x_pos[lower_x_bound: upper_x_bound+1]
-        #print('min(xs)' + str(min(xs)))
-        #print('max(xs)' + str(max(xs)))
+        
+        if(debug):
+            print('min(xs)' + str(min(xs)))
+            print('max(xs)' + str(max(xs)))
         
         txs = x_times[lower_x_bound: upper_x_bound+1]
         interpx = interp1d(xs, txs)
         y_ind = y-min_y
-        #print(y_ind)
-        #for x in range(int(min(xs)), int(max(xs))):
         for x in range(min_x, max_x):
             #print(x)
             try:
                 t = interpx(x)
             except ValueError:
-                raise ValueError('Value x=' + str(x) + ' is outside of range: ' + str(min(xs)) + ' ' + str(max(xs)))
+                print('Value x=' + str(x) + ' is outside of range: ' + str(min(xs)) + ' ' + str(max(xs)))
+                print('Using default value t=-1')
+                t = -1
             rastor_t[x-min_x, y_ind] = t
 
 
@@ -102,7 +120,10 @@ def perform_rastor_interpolation(x_pos, x_times, y_pos, y_times, volts, v_times,
     for x in range(x_range):
         for y in range(y_range):
             t = rastor_t[x,y]
-            rastor[x,y] = interpv(t)
+            if(t == -1):
+                rastor[x,y] = -1
+            else:
+                rastor[x,y] = interpv(t)
 
     return rastor
 
@@ -197,32 +218,36 @@ def delete_empty_rows(file_path, new_file_path):
     data.dropna(how="all", inplace=True)
     data.to_csv(new_file_path, header=True, index=False)
 
-def read_files(folder = '.', prefix='front'):
+def read_files(folder = '.', prefix='front', step=5):
     xfile = str(prefix) + '_x_pos.csv'
     yfile = str(prefix) + '_y_pos.csv'
     vfile = str(prefix) + '_volts.csv'
+    print('Reading files')
     x = pd.read_csv(os.path.join(folder, xfile))
     y = pd.read_csv(os.path.join(folder,yfile))
     v = pd.read_csv(os.path.join(folder,vfile))
 
-    x_pos = list(x['x_pos'])
+    x_pos = list(x['x_pos']/step)
     x_times = list(x['x_pos times'])
-    y_pos = list(y['y_pos'])
+    y_pos = list(y['y_pos']/step)
     y_times = list(y['y_pos times'])
     volts = list(v['volts'])
     v_times = list(v['nida reading times'])
-    print('here')
+    print('Finished Reading Files')
     
     return x_pos, x_times, y_pos, y_times, volts, v_times
 
-def show_scan(rastor, title, c_title, norm = None):
+def show_scan(rastor, title, c_title, norm = None, save_path=None):
+    plt.figure()
     plt.imshow(rastor, cmap = 'rainbow', norm = norm)
     cb = plt.colorbar()
     cb.set_label(c_title)
     plt.xlabel('Length (mm)')
     plt.ylabel('Width (mm)')
     plt.title(title)
-    plt.show()
+    #plt.show()
+    if(save_path):
+        plt.savefig(save_path)
 
 def main():
     #delete_empty_rows('x_pos.csv', 'x_pos_fixed.csv')
@@ -230,27 +255,37 @@ def main():
     parser.add_argument('-f', '--folder', default='.',
                         help='/path/to/folder where scans are stored')
     
-    parser.add_argument('-p', '--prefix', default='front',
+    parser.add_argument('-t', '--prefix', default='front',
                         help='prefix of scan names')
     args = parser.parse_args()
 
-    min_y = -125
-    max_y = 135
-    min_x = -120
-    max_x = 145
-    crop_max_v = 10
-    crop_max_x = 240
-    crop_min_x = 15
-    crop_min_y = 15
-    crop_max_y = 240
-    x_pos, x_times, y_pos, y_times, volts, v_times = read_files(args.folder, args.prefix)
-    rastor = perform_rastor_interpolation(x_pos, x_times, y_pos, y_times, volts, v_times, min_y, max_y, min_x, max_x)
+    min_y = None#-125
+    max_y = None#135
+    min_x = None#-120
+    max_x = None#145
+
+    step=5
+    crop_max_v = 10 
+    crop_min_y = 50/step
+    crop_max_y = 220/step
+    
+    crop_min_x = 40/step
+    crop_max_x = 225/step
+    debug = True
+    vmin = -0.02
+    vmax = 0.02
+    
+    x_pos, x_times, y_pos, y_times, volts, v_times = read_files(args.folder, args.prefix, step=step)
+    rastor = perform_rastor_interpolation(x_pos, x_times, y_pos, y_times, volts, v_times, min_y, max_y, min_x, max_x, debug=debug)
 
     title = 'Before Cropping'
     scale_name = 'Heights (mm)'
-    show_scan(rastor, title, scale_name)
+
+    save_path = os.path.join(args.folder, args.prefix+'_beforecrop.png')
+    show_scan(rastor, title, scale_name, save_path=save_path)
     pos, volt_readings = matrix_to_list(rastor, max_v=crop_max_v, max_x=crop_max_x, min_x=crop_min_x, min_y=crop_min_y, max_y=crop_max_y)
     coeff, error = find_least_squares_regression(np.array(pos), np.array(volt_readings))
+    print('Mean squared error: ' + str(error))
     pos_uncropped, volt_readings_uncropped = matrix_to_list(rastor)
     
     #Cropped Version:
@@ -266,9 +301,8 @@ def main():
     scale_name = 'Height Deviation from Plane (mm)'
     title = 'Subtracted Plane Topology Map'
 
-    vmin = -0.035
-    vmax = 0.025
-    show_scan(new_rastor, title ,scale_name, norm = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax))
+    save_path=os.path.join(args.folder, args.prefix+'_subtracted.png')
+    show_scan(new_rastor, title ,scale_name, norm = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax), save_path=save_path)
     return
     
 if __name__ == '__main__':
