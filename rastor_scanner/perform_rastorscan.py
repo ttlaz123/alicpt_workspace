@@ -289,10 +289,10 @@ def main():
 
     fts = initialize_fts(password=password, num_sockets=4, IP=IP_address, reinitialize=args.reinitialize)
     
-    g1_min = -115
-    g1_max = 140
-    g2_min = -125
-    g2_max = 125
+    g1_min = -130
+    g1_max = 130
+    g2_min = -130
+    g2_max = 145
     step= 5
     seq = write_seq(g1_min, g1_max, g2_min, g2_max, step)
     #seq = ['g2.-80', 'g1.-145', 'g1.145', 'g2.-40', 'g1.-145', 'g2.0', 'g1.145', 'g2.60', 'g1.-145', 'g2.120', 'g1.145', 'g2.-30', 'g1.0']

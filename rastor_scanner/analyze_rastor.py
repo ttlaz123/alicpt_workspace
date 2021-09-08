@@ -237,53 +237,32 @@ def read_files(folder = '.', prefix='front', step=5):
     
     return x_pos, x_times, y_pos, y_times, volts, v_times
 
-def show_scan(rastor, title, c_title, norm = None, save_path=None):
+def show_scan(rastor, title, c_title, step=1, norm = None, save_path=None):
     plt.figure()
     plt.imshow(rastor, cmap = 'rainbow', norm = norm)
     cb = plt.colorbar()
     cb.set_label(c_title)
-    plt.xlabel('Length (mm)')
-    plt.ylabel('Width (mm)')
+    plt.xlabel('Length (mm*' + str(step) + ')')
+    plt.ylabel('Width (mm*' + str(step) + ')')
     plt.title(title)
-    #plt.show()
+    
     if(save_path):
         plt.savefig(save_path)
 
-def main():
-    #delete_empty_rows('x_pos.csv', 'x_pos_fixed.csv')
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-f', '--folder', default='.',
-                        help='/path/to/folder where scans are stored')
-    
-    parser.add_argument('-t', '--prefix', default='front',
-                        help='prefix of scan names')
-    args = parser.parse_args()
+    plt.show()
 
-    min_y = None#-125
-    max_y = None#135
-    min_x = None#-120
-    max_x = None#145
-
-    step=5
-    crop_max_v = 10 
-    crop_min_y = 50/step
-    crop_max_y = 220/step
+def obtain_height_diff(prefix, folder_path, step, crop_miny, crop_maxy, crop_minx, crop_maxx, crop_maxv, vmin, vmax, debug=False):
+    x_pos, x_times, y_pos, y_times, volts, v_times = read_files(folder_path, prefix, step=step)
     
-    crop_min_x = 40/step
-    crop_max_x = 225/step
-    debug = True
-    vmin = -0.02
-    vmax = 0.02
     
-    x_pos, x_times, y_pos, y_times, volts, v_times = read_files(args.folder, args.prefix, step=step)
-    rastor = perform_rastor_interpolation(x_pos, x_times, y_pos, y_times, volts, v_times, min_y, max_y, min_x, max_x, debug=debug)
+    rastor = perform_rastor_interpolation(x_pos, x_times, y_pos, y_times, volts, v_times, debug=debug)
 
-    title = 'Before Cropping'
+    title = 'Before Cropping ' + prefix
     scale_name = 'Heights (mm)'
 
-    save_path = os.path.join(args.folder, args.prefix+'_beforecrop.png')
-    show_scan(rastor, title, scale_name, save_path=save_path)
-    pos, volt_readings = matrix_to_list(rastor, max_v=crop_max_v, max_x=crop_max_x, min_x=crop_min_x, min_y=crop_min_y, max_y=crop_max_y)
+    save_path = os.path.join(folder_path, prefix+'_beforecrop.png')
+    show_scan(rastor, title, scale_name, save_path=save_path, step=step)
+    pos, volt_readings = matrix_to_list(rastor, max_v=crop_maxv, max_x=crop_maxx, min_x=crop_minx, min_y=crop_miny, max_y=crop_maxy)
     coeff, error = find_least_squares_regression(np.array(pos), np.array(volt_readings))
     print('Mean squared error: ' + str(error))
     pos_uncropped, volt_readings_uncropped = matrix_to_list(rastor)
@@ -295,14 +274,52 @@ def main():
     new_volts, new_rastor, meas_rastor = subtract_plane(pos_uncropped, volt_readings_uncropped, coeff)
 
 
-    title = 'Raw Heights Topology Map'
-    show_scan(meas_rastor, title , scale_name)
+    title = 'Raw Heights Topology Map ' + prefix
+    show_scan(meas_rastor, title , scale_name, step=step)
 
     scale_name = 'Height Deviation from Plane (mm)'
-    title = 'Subtracted Plane Topology Map'
+    title = 'Subtracted Plane Topology Map '+ prefix
 
-    save_path=os.path.join(args.folder, args.prefix+'_subtracted.png')
-    show_scan(new_rastor, title ,scale_name, norm = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax), save_path=save_path)
+    save_path=os.path.join(folder_path, prefix+'_subtracted.png')
+    show_scan(new_rastor, title ,scale_name, step=step, norm = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax), save_path=save_path)
+    
+    return 
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-f', '--folder', default='.',
+                        help='/path/to/folder where scans are stored')
+    
+    parser.add_argument('-t', '--prefix', default='front',
+                        help='prefix of scan names')
+    parser.add_argument('-s', '--second', help='prefix of second scan to combine')
+    parser.add_argument('-d', '--debug', action='store_true', help='print debug statements')
+    args = parser.parse_args()
+
+    step=5
+    crop_maxv = 10 
+
+
+    crop_minx = 10
+    crop_maxx = 42
+    
+    crop_miny = 35
+    crop_maxy = 48
+
+    crop_minx2 = 10
+    crop_maxx2 = 42
+    
+    crop_miny2 = 35
+    crop_maxy2 = 48
+
+    vmin = -0.02
+    vmax = 0.02
+    
+    obtain_height_diff(args.prefix, args.folder, step, crop_miny, crop_maxy, crop_minx, crop_maxx, crop_maxv, vmin, vmax, debug=args.debug)
+    
+    if(args.second):
+        obtain_height_diff(args.second, args.folder, step, crop_miny2, crop_maxy2, crop_minx2, crop_maxx2, crop_maxv, vmin, vmax, debug=args.debug)
+    
     return
     
 if __name__ == '__main__':
