@@ -546,6 +546,7 @@ class NewportXPS:
         set velocity for stage
         """
         print('Setting Velocity ------------')
+        
         if stage not in self.stages:
             print("Stage '%s' not found" % stage)
             raise XPSException('Stage not found')
@@ -557,6 +558,7 @@ class NewportXPS:
             min_jerktime = jt0_cur
         if max_jerktime is None:
             max_jerktime = jt1_cur
+        print('Velocity: ' + str(velo))    
         self._xps.PositionerSGammaParametersSet(self._sid, stage, velo, accl,
                                                 min_jerktime, max_jerktime)
 
