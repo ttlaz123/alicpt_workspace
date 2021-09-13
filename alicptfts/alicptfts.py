@@ -96,7 +96,7 @@ class AlicptFTS:
 
             except Exception:
                 print('ERROR: Cannot Connect to XPS')
-                raise
+                raise AttributeError('Cannot connect to XPS')
 
         else:                           # From a reboot
             try:
