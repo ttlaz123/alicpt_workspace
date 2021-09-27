@@ -242,7 +242,7 @@ class HexaChamber:
 
     def __init__(self, host, 
                  username='Administrator', password='xxxxxx', groupname='HEXAPOD',
-                 port=5001, timeout=10, extra_triggers=0, xps=None, default_velocity=1):
+                 port=5001, timeout=10, extra_triggers=0, xps=None, default_velocity=0.1):
 
         """Establish connection with each part.
         

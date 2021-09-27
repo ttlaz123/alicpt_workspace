@@ -3,6 +3,52 @@ import pyvisa as pv
 import matplotlib.pyplot as plt
 import time
 
+from scipy.optimize import curve_fit
+import numpy as np
+ 
+
+def skewedLorentzian(x,bkg,bkg_slp,skw,mintrans,res_f,Q):
+    term1 = bkg 
+    term2 = bkg_slp*(x-res_f)
+    numer = (mintrans+skw*(x-res_f))
+    denom = (1+4*Q**2*((x-res_f)/res_f)**2)
+    term3 = numer/denom
+    return term1 + term2 - term3
+
+ 
+
+def fit_skewedLorentzian(f,mag):
+    if(isinstance(f, list)):
+        f=np.array(f)
+    if(isinstance(mag, list)):
+        mag = np.array(mag)
+    if(np.mean(mag) < 0):
+        mag = -mag
+    # define the initial values
+    bkg = (mag[0]+mag[-1])/2
+    bkg_slp = (mag[-1]-mag[0])/(f[-1]-f[0])
+    skw = 0
+
+    mintrans = bkg-mag.min()
+    res_f = f[mag.argmin()]
+
+    Q = 1e4
+
+    low_bounds = [bkg/2,-1e-3,-1,0,f[0],1e2]
+    up_bounds = [bkg*2,1e-3,1,30,f[-1],1e5]
+
+    try:
+        popt,pcov = curve_fit(skewedLorentzian,f,mag,p0=[bkg,bkg_slp,skw,mintrans,res_f,Q],method='lm')
+        
+        #if popt[5]<0:
+        #    popt,pcov = curve_fit(skewedLorentzian,f,mag,p0=[bkg,bkg_slp,skw,mintrans,res_f,Q],bounds=(low_bounds,up_bounds))
+        #    print('Using bounded curve_fit')
+        
+    except RuntimeError:
+        popt=np.zeros((6,))
+
+    return popt
+
 def format_trace4(string_result):
     '''
     expected format: X.XXXXXXEXX, 0.000000E00\n
@@ -25,10 +71,13 @@ def send_command(na, cmd_list):
     return res 
     
 
-def plot_trace(xs, ys, position, title='Axion Cavity Resonance Scanner', fig=None, ax=None):
+def plot_trace(xs, ys, position, fit=None, title='Axion Cavity Resonance Scanner', fig=None, ax=None):
     if(ax is None):
         fig, ax = plt.subplots(1,1)
-    ax.plot(xs, ys, label='Positioner at ' + str(position) + ' mm')
+    ax.plot(xs, ys, label='Positioner at ' + str(position) + ' mm', linewidth=3)
+    if(fit is not None):
+        skewed_lorentzian = [-skewedLorentzian(x, fit[0], fit[1], fit[2], fit[3], fit[4], fit[5]) for x in xs]
+        ax.plot(xs, skewed_lorentzian, label='Fit at ' + str(position) + ' mm, Q=' + str(abs(fit[5])), linewidth=2)
     ax.set_xlabel('Frequency (Hz)')
     ax.set_ylabel('Response')
     ax.set_title(title)
@@ -47,7 +96,9 @@ def print_trace(na, position=None, fig=None, ax=None):
     str_res = send_command(na, [lim_cmd])
     freqs = format_trace4(str_res)
 
-    fig, ax = plot_trace(freqs, response, position,fig=fig, ax=ax)
+    coefficients = fit_skewedLorentzian(freqs,response)
+    print(coefficients)
+    fig, ax = plot_trace(freqs, response, position,fit=coefficients,fig=fig, ax=ax)
     return fig, ax 
 
 def initialize_device():
